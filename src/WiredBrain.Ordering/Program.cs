@@ -1,4 +1,4 @@
-﻿﻿using MassTransit;
+﻿using MassTransit;
 using WiredBrain.Messages;
 
 namespace WiredBrain.Ordering;
