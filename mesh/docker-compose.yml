@@ -1,0 +1,26 @@
+name: parallel-queues
+
+services:
+  rabbitmq:
+    image: masstransit/rabbitmq:4.0.2
+
+  ordering:
+    build:
+      context: ../src
+      dockerfile: WiredBrain.Ordering/Dockerfile
+    depends_on:
+      - rabbitmq
+
+  billing:
+    build:
+      context: ../src
+      dockerfile: WiredBrain.Billing/Dockerfile
+    depends_on:
+      - rabbitmq
+
+  shipping:
+    build:
+      context: ../src
+      dockerfile: WiredBrain.Shipping/Dockerfile
+    depends_on:
+      - rabbitmq
