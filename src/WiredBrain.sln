@@ -1,4 +1,4 @@
-﻿
+﻿﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -8,6 +8,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiredBrain.Billing", "WiredBrain.Billing\WiredBrain.Billing.csproj", "{38B0FCD4-1AF3-4D69-93B2-D4E3378BA14D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiredBrain.Messages", "WiredBrain.Messages\WiredBrain.Messages.csproj", "{F2E1FFA2-6B54-4E03-8C39-11BE535BAEC8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiredBrain.Shipping", "WiredBrain.Shipping\WiredBrain.Shipping.csproj", "{C5D2A3E7-F8A1-4B3D-9E1F-D6B9C8A7E8B5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +32,9 @@ Global
 		{F2E1FFA2-6B54-4E03-8C39-11BE535BAEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2E1FFA2-6B54-4E03-8C39-11BE535BAEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2E1FFA2-6B54-4E03-8C39-11BE535BAEC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5D2A3E7-F8A1-4B3D-9E1F-D6B9C8A7E8B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5D2A3E7-F8A1-4B3D-9E1F-D6B9C8A7E8B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5D2A3E7-F8A1-4B3D-9E1F-D6B9C8A7E8B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5D2A3E7-F8A1-4B3D-9E1F-D6B9C8A7E8B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

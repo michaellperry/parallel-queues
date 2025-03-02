@@ -20,3 +20,10 @@ services:
       dockerfile: WiredBrain.Billing/Dockerfile
     depends_on:
       - rabbitmq
+
+  shipping:
+    build:
+      context: ../src
+      dockerfile: WiredBrain.Shipping/Dockerfile
+    depends_on:
+      - rabbitmq
