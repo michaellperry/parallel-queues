@@ -3,6 +3,9 @@ name: parallel-queues
 services:
   rabbitmq:
     image: masstransit/rabbitmq:4.0.2
+    ports:
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP port
 
   ordering:
     build:
@@ -15,12 +18,5 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Billing/Dockerfile
-    depends_on:
-      - rabbitmq
-
-  shipping:
-    build:
-      context: ../src
-      dockerfile: WiredBrain.Shipping/Dockerfile
     depends_on:
       - rabbitmq
