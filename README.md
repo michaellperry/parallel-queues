@@ -28,6 +28,7 @@ docker-compose up -d --build
 This will:
 - Start a RabbitMQ container
 - Build and start the Ordering, Billing, and Shipping service containers
+- Start Prometheus and Grafana containers for metrics collection and visualization
 
 ### 2. Manually Start the Shipping Service
 
@@ -51,7 +52,16 @@ Once connected to the container, you can start the Shipping service by running:
 
 You should see the message: "Shipping Service Started. Listening for orders..."
 
-### 3. Testing the System
+### 3. Access Prometheus and Grafana
+
+Prometheus will be available at [http://localhost:9090](http://localhost:9090) and Grafana at [http://localhost:3000](http://localhost:3000).
+
+To configure Grafana:
+1. Open Grafana in your browser.
+2. Add Prometheus as a data source (URL: `http://prometheus:9090`).
+3. Create dashboards to visualize metrics for wait time, processing time, and queue depth.
+
+### 4. Testing the System
 
 The Ordering service will automatically generate orders. Once you've started the Shipping service manually, you should see it processing these orders with messages like:
 
@@ -59,7 +69,7 @@ The Ordering service will automatically generate orders. Once you've started the
 Preparing shipment for order: [OrderId] for [CustomerName]
 ```
 
-### 4. Stopping the Demo
+### 5. Stopping the Demo
 
 To stop all services, press Ctrl+C in the terminal where docker-compose is running, or run:
 
