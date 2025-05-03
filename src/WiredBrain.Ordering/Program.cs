@@ -1,67 +1,74 @@
 ﻿using MassTransit;
+using Prometheus;
 using WiredBrain.Messages;
+using WiredBrain.Ordering;
 
-namespace WiredBrain.Ordering;
+var builder = WebApplication.CreateBuilder(args);
 
-public class Program
+// Configure MassTransit with RabbitMQ
+builder.Services.AddMassTransit(x =>
 {
-    private static DateTime _lastOrderTime = DateTime.MinValue;
-    private static double _totalInterArrivalTime = 0;
-    private static int _orderCount = 0;
-
-    public static async Task Main()
+    x.UsingRabbitMq((context, cfg) =>
     {
-        // Configure MassTransit with RabbitMQ
-        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
-        {
-            cfg.Host("rabbitmq", "/");
-        });
+        cfg.Host("rabbitmq", "/");
+    });
+});
 
-        await busControl.StartAsync();
+var app = builder.Build();
 
-        try
-        {
-            Console.WriteLine("Ordering Service Started. Publishing orders every second...");
-            
-            // Publish an order every second
-            while (true)
-            {
-                var order = GenerateRandomOrder();
-                await busControl.Publish<OrderPlaced>(order);
-                Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+// Configure metrics endpoint
+app.UseMetricServer();
 
-                // Track order arrival times and calculate average arrival rate
-                if (_lastOrderTime != DateTime.MinValue)
-                {
-                    var interArrivalTime = (DateTime.UtcNow - _lastOrderTime).TotalSeconds;
-                    _totalInterArrivalTime += interArrivalTime;
-                    _orderCount++;
-                }
-                _lastOrderTime = DateTime.UtcNow;
+// Start the order publishing background service
+Task.Run(async () => await PublishOrdersAsync());
 
-                var averageArrivalRate = _orderCount / _totalInterArrivalTime;
-                Console.WriteLine($"Average Arrival Rate: {averageArrivalRate} orders/second");
+app.Run();
 
-                await Task.Delay(1000);
-            }
-        }
-        finally
-        {
-            await busControl.StopAsync();
-        }
-    }
+async Task PublishOrdersAsync()
+{
+    // Get the bus from the service provider
+    var busControl = app.Services.GetRequiredService<IBus>();
 
-    private static OrderPlaced GenerateRandomOrder()
+    try
     {
-        var random = new Random();
-        var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
+        Console.WriteLine("Ordering Service Started. Publishing orders...");
         
-        return new OrderPlaced
+        // Get the configurable arrival rate from environment variable or use default
+        var orderArrivalRateMs = Environment.GetEnvironmentVariable("ORDER_ARRIVAL_RATE_MS");
+        var delayMs = string.IsNullOrEmpty(orderArrivalRateMs) ? 1000 : int.Parse(orderArrivalRateMs);
+        
+        Console.WriteLine($"Order arrival rate set to: {delayMs}ms between orders");
+        
+        // Publish orders at the configured rate
+        while (true)
         {
-            OrderId = Guid.NewGuid(),
-            CustomerName = customers[random.Next(customers.Length)],
-            OrderDate = DateTime.UtcNow,
-            Amount = (decimal)Math.Round(random.NextSingle() * 100, 2)
-        };
+            var order = GenerateRandomOrder();
+            await busControl.Publish<OrderPlaced>(order);
+            
+            // Track the order placement in metrics
+            OrderingMetrics.TrackOrderPlaced();
+            
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+            
+            await Task.Delay(delayMs);
+        }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error publishing orders: {ex.Message}");
+    }
+}
+
+OrderPlaced GenerateRandomOrder()
+{
+    var random = new Random();
+    var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
+    
+    return new OrderPlaced
+    {
+        OrderId = Guid.NewGuid(),
+        CustomerName = customers[random.Next(customers.Length)],
+        OrderDate = DateTime.UtcNow,
+        Amount = (decimal)Math.Round(random.NextSingle() * 100, 2)
+    };
 }

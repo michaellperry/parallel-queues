@@ -24,6 +24,10 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Ordering/Dockerfile
+    ports:
+      - "8081:80"
+    environment:
+      - ORDER_ARRIVAL_RATE_MS=1000
     depends_on:
       - rabbitmq
 
