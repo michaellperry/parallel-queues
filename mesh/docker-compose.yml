@@ -9,8 +9,7 @@ services:
       - "15692:15692"  # Prometheus metrics
     volumes:
       - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-    environment:
-      - RABBITMQ_ENABLED_PLUGINS=rabbitmq_management,rabbitmq_prometheus
+      - ./enabled_plugins:/etc/rabbitmq/enabled_plugins
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 30s
