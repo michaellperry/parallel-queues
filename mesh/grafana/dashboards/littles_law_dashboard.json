@@ -1,0 +1,58 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "content": "# WiredBrain Queueing Theory Demo: Little's Law\n\nThis dashboard demonstrates Little's Law (L = λW), a fundamental principle in queueing theory that states:\n\n**The average number of items in a system (L) equals the average arrival rate (λ) multiplied by the average time an item spends in the system (W).**\n\nRefer to the DASHBOARD_SETUP.md file for instructions on how to complete this dashboard.",
+        "mode": "markdown"
+      },
+      "title": "Introduction",
+      "type": "text"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["queueing-theory", "littles-law"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "WiredBrain Queueing Theory Demo",
+  "uid": "wiredbrain-littles-law",
+  "version": 1,
+  "weekStart": ""
+}
