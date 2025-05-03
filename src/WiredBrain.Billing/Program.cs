@@ -1,13 +1,10 @@
 using MassTransit;
+using Prometheus;
+using WiredBrain.Billing;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 builder.Services.AddMassTransit(x =>
 {
     x.UsingRabbitMq((context, cfg) =>
@@ -21,6 +18,10 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -32,6 +33,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseMetricServer(); // Exposes /metrics endpoint
+app.UseHttpMetrics();  // Collects HTTP request metrics
 
 app.MapControllers();
 

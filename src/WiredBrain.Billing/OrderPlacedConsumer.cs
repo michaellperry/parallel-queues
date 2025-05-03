@@ -2,23 +2,22 @@ using System.Diagnostics;
 using MassTransit;
 using WiredBrain.Messages;
 
+namespace WiredBrain.Billing;
+
 public class OrderPlacedConsumer : IConsumer<OrderPlaced>
 {
-    // private static readonly Meter Meter = new Meter("WiredBrain.Billing");
-    // private static readonly Histogram<double> WaitTimeHistogram = Meter.CreateHistogram<double>("wait_time");
-    // private static readonly Counter<long> ProcessingTimeCounter = Meter.CreateCounter<long>("processing_time");
-
-    public Task Consume(ConsumeContext<OrderPlaced> context)
+    public async Task Consume(ConsumeContext<OrderPlaced> context)
     {
         var order = context.Message;
-        var waitTime = (DateTime.UtcNow - order.OrderDate).TotalSeconds;
-        // WaitTimeHistogram.Record(waitTime);
 
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"Processing payment for order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+        await Task.Delay(200); // Simulate payment processing delay (τ)
         stopwatch.Stop();
-        // ProcessingTimeCounter.Add(stopwatch.ElapsedMilliseconds);
+        BillingMetrics.TrackProcessingTime(stopwatch.ElapsedMilliseconds);
 
-        return Task.CompletedTask;
+        // Total wait time (W) includes both the time in queue and the processing time
+        var waitTime = (DateTime.UtcNow - order.OrderDate).TotalSeconds;
+        BillingMetrics.TrackWaitTime(waitTime);
     }
 }
