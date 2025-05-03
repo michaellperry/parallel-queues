@@ -4,7 +4,7 @@ global:
 scrape_configs:
   - job_name: 'wiredbrain_services'
     static_configs:
-      - targets: ['ordering:80', 'billing:80', 'shipping:80']
+      - targets: ['ordering:80', 'billing:8080', 'shipping:80']
 
   - job_name: 'rabbitmq'
     static_configs:
