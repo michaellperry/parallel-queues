@@ -1,8 +1,5 @@
 ﻿using MassTransit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using WiredBrain.Messages;
-using System.Diagnostics;
 
 namespace WiredBrain.Ordering;
 
@@ -14,63 +11,44 @@ public class Program
 
     public static async Task Main()
     {
-        var host = Host.CreateDefaultBuilder()
-            .ConfigureServices(Configure)
-            .Build();
+        // Configure MassTransit with RabbitMQ
+        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+        {
+            cfg.Host("rabbitmq", "/");
+        });
 
-        await host.StartAsync();
+        await busControl.StartAsync();
 
         try
         {
             Console.WriteLine("Ordering Service Started. Publishing orders every second...");
             
-            var busControl = host.Services.GetRequiredService<IBusControl>();
-            await busControl.StartAsync();
-
-            try
+            // Publish an order every second
+            while (true)
             {
-                // Publish an order every second
-                while (true)
+                var order = GenerateRandomOrder();
+                await busControl.Publish<OrderPlaced>(order);
+                Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+
+                // Track order arrival times and calculate average arrival rate
+                if (_lastOrderTime != DateTime.MinValue)
                 {
-                    var order = GenerateRandomOrder();
-                    await busControl.Publish<OrderPlaced>(order);
-                    Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
-
-                    // Track order arrival times and calculate average arrival rate
-                    if (_lastOrderTime != DateTime.MinValue)
-                    {
-                        var interArrivalTime = (DateTime.UtcNow - _lastOrderTime).TotalSeconds;
-                        _totalInterArrivalTime += interArrivalTime;
-                        _orderCount++;
-                    }
-                    _lastOrderTime = DateTime.UtcNow;
-
-                    var averageArrivalRate = _orderCount / _totalInterArrivalTime;
-                    Console.WriteLine($"Average Arrival Rate: {averageArrivalRate} orders/second");
-
-                    await Task.Delay(1000);
+                    var interArrivalTime = (DateTime.UtcNow - _lastOrderTime).TotalSeconds;
+                    _totalInterArrivalTime += interArrivalTime;
+                    _orderCount++;
                 }
-            }
-            finally
-            {
-                await busControl.StopAsync();
+                _lastOrderTime = DateTime.UtcNow;
+
+                var averageArrivalRate = _orderCount / _totalInterArrivalTime;
+                Console.WriteLine($"Average Arrival Rate: {averageArrivalRate} orders/second");
+
+                await Task.Delay(1000);
             }
         }
         finally
         {
-            await host.StopAsync();
+            await busControl.StopAsync();
         }
-    }
-
-    private static void Configure(HostBuilderContext context, IServiceCollection services)
-    {
-        services.AddMassTransit(x =>
-        {
-            x.UsingRabbitMq((context, cfg) =>
-            {
-                cfg.Host("rabbitmq", "/");
-            });
-        });
     }
 
     private static OrderPlaced GenerateRandomOrder()
