@@ -2,11 +2,23 @@ name: parallel-queues
 
 services:
   rabbitmq:
-    image: masstransit/rabbitmq:4.0.2
+    image: rabbitmq:3.12-management
     ports:
       - "15672:15672"  # Management UI
       - "5672:5672"    # AMQP port
-    command: rabbitmq-plugins enable rabbitmq_management
+    volumes:
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   ordering:
     build:
