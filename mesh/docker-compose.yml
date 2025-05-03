@@ -46,6 +46,10 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Shipping/Dockerfile
+    environment:
+      - SHIPPING_PROCESSING_DELAY_MS=300
+    ports:
+      - "8083:80"  # Expose port for metrics scraping
     depends_on:
       - rabbitmq
 
