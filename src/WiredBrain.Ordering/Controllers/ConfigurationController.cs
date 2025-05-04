@@ -102,22 +102,55 @@ public class ConfigurationController : ControllerBase
                 // Scenario A: Underload (λ < cμ)
                 config.OrderArrivalDelayMs = 4800 / config.BillingServiceCount; // λ = 4.8 orders/sec per service
                 config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                config.CoefficientOfArrivalVariation = 0;
+                config.CoefficientOfServiceVariation = 0;
                 break;
                 
             case "nearcapacity":
                 // Scenario B: Near Capacity (λ ≈ cμ)
                 config.OrderArrivalDelayMs = 625 / config.BillingServiceCount; // λ = 1.6 orders/sec per service
                 config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                config.CoefficientOfArrivalVariation = 0;
+                config.CoefficientOfServiceVariation = 0;
                 break;
                 
             case "overload":
                 // Scenario C: Overload (λ > cμ)
                 config.OrderArrivalDelayMs = 450 / config.BillingServiceCount; // λ = 2.2 orders/sec per service
                 config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                config.CoefficientOfArrivalVariation = 0;
+                config.CoefficientOfServiceVariation = 0;
+                break;
+                
+            case "lowvariability":
+                // Scenario 1: Low Variability, Moderate Utilization (ca ≈ 0.5, cs ≈ 0.5, ρ ≈ 0.7)
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                // For ρ = 0.7, λ = 0.7 * c * μ = 0.7 * c * 2 = 1.4 * c orders/sec
+                config.OrderArrivalDelayMs = (int)(1000 / (1.4 * config.BillingServiceCount));
+                config.CoefficientOfArrivalVariation = 0.5;
+                config.CoefficientOfServiceVariation = 0.5;
+                break;
+                
+            case "highservicevariability":
+                // Scenario 2: High Service Variability, Moderate Utilization (ca ≈ 0.5, cs ≈ 2.0, ρ ≈ 0.7)
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                // For ρ = 0.7, λ = 0.7 * c * μ = 0.7 * c * 2 = 1.4 * c orders/sec
+                config.OrderArrivalDelayMs = (int)(1000 / (1.4 * config.BillingServiceCount));
+                config.CoefficientOfArrivalVariation = 0.5;
+                config.CoefficientOfServiceVariation = 2.0;
+                break;
+                
+            case "highvariability":
+                // Scenario 3: High Arrival and Service Variability, High Utilization (ca ≈ 1.5, cs ≈ 1.5, ρ ≈ 0.9)
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
+                // For ρ = 0.9, λ = 0.9 * c * μ = 0.9 * c * 2 = 1.8 * c orders/sec
+                config.OrderArrivalDelayMs = (int)(1000 / (1.8 * config.BillingServiceCount));
+                config.CoefficientOfArrivalVariation = 1.5;
+                config.CoefficientOfServiceVariation = 1.5;
                 break;
                 
             default:
-                return BadRequest($"Unknown scenario: {scenarioName}. Available scenarios: underload, nearcapacity, overload");
+                return BadRequest($"Unknown scenario: {scenarioName}. Available scenarios: underload, nearcapacity, overload, lowvariability, highservicevariability, highvariability");
         }
         
         _configService.UpdateConfiguration(config);

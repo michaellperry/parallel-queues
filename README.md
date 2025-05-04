@@ -29,6 +29,41 @@ This project demonstrates this law by:
 - Observing the queue lengths (L)
 - Verifying that L ≈ λW in various scenarios
 
+### Kingman's Formula and Variability
+
+While Little's Law (L = λW) is a fundamental relationship that holds true for any stable system, it doesn't tell us *why* queue lengths and wait times change. Kingman's Formula, also known as the V-UT equation (Variability * Utilization * Time), provides insight into the factors that influence waiting time in a queue, particularly the impact of variability in arrival and service times.
+
+For a single-server queue (M/G/1), Kingman's Formula for the average waiting time in the queue (Wq) is:
+
+Wq ≈ (ca² + cs²) / 2 * (ρ / (1-ρ)) * τ
+
+Where:
+- ca² is the squared coefficient of variation of arrival times (a measure of arrival variability)
+- cs² is the squared coefficient of variation of service times (a measure of service variability)
+- ρ is the utilization (λ/μ)
+- τ is the average service time
+
+The formula highlights that waiting time is proportional to:
+- **Variability (ca² + cs²)**: Higher variability in either arrivals or service times leads to longer wait times.
+- **Utilization (ρ / (1-ρ))**: As utilization approaches 1 (100%), the term ρ / (1-ρ) approaches infinity, causing wait times to increase dramatically. This demonstrates the non-linear relationship between utilization and waiting time.
+- **Average Service Time (τ)**: Longer service times directly increase waiting times.
+
+#### Modeling Service Times with the Gamma Distribution
+
+In real-world systems, service times are rarely constant. They often exhibit variability. To model this variability in the WiredBrain demo, the Billing service uses the Gamma distribution to simulate processing times.
+
+The Gamma distribution is a flexible continuous probability distribution that can model a wide range of waiting times. It is particularly appropriate here because:
+- It only produces positive values, which is necessary for modeling time.
+- Its shape can be adjusted using two parameters: the shape parameter (k) and the scale parameter (θ).
+- By adjusting these parameters, we can control the mean and variance of the service times, and thus the coefficient of variation (cs).
+
+The Billing service uses the MathNet.Numerics library to generate random numbers following a Gamma distribution with configurable parameters. The relationship between the Gamma distribution parameters (shape k, scale θ), the mean (μ_gamma), variance (σ²_gamma), and coefficient of variation (cs) is:
+- μ_gamma = k * θ
+- σ²_gamma = k * θ²
+- cs = σ_gamma / μ_gamma = sqrt(k * θ²) / (k * θ) = sqrt(k) * θ / (k * θ) = 1 / sqrt(k)
+
+This shows that the coefficient of service variation (cs) is determined solely by the shape parameter (k) of the Gamma distribution.
+
 ### Queueing Theory Concepts
 
 The demo also illustrates several important queueing theory concepts:
@@ -61,45 +96,140 @@ The easiest way to interact with the configuration API is through the Swagger UI
 
 You can quickly apply predefined scenarios by making a POST request to `/api/Configuration/scenario/{scenarioName}?billingServiceCount={count}` where:
 - `scenarioName` is one of the predefined scenarios listed below
-- `billingServiceCount` (optional) is the number of billing services available (default: 4)
+- `billingServiceCount` (optional) is the number of billing services available (default: 16)
 
 The maximum service rate is calculated as cμ, where:
 - c is the number of services (billingServiceCount)
 - μ is the service rate per service (1/τ, where τ is the processing time in seconds)
 
-For example, with a billing processing delay of 200ms (τ = 0.2s), the service rate per service (μ) is 5 orders/sec. With 4 services (c = 4), the maximum service rate (cμ) becomes 20 orders/sec.
+For example, with a billing processing delay of 500ms (τ = 0.5s), the service rate per service (μ) is 2 orders/sec. With 16 services (c = 16), the maximum service rate (cμ) becomes 32 orders/sec.
 
 Available scenarios:
 
 1. **underload**: Demonstrates a system under minimal load
-   - OrderArrivalRateMs: 2000 (λ = 0.5 orders/sec)
-   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
-   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
+   - OrderArrivalRateMs: 4800 / BillingServiceCount (λ = 4.8 orders/sec per service)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16 (cμ = 32 orders/sec)
    - Result: Minimal queueing, W ≈ τ
 
 2. **nearcapacity**: Demonstrates a system operating near its capacity
-   - OrderArrivalRateMs: 350 (λ = 2.86 orders/sec)
-   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
-   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
+   - OrderArrivalRateMs: 625 / BillingServiceCount (λ = 1.6 orders/sec per service)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16 (cμ = 32 orders/sec)
    - Result: Increasing queue lengths when c is reduced
 
 3. **overload**: Demonstrates a system under excessive load
-   - OrderArrivalRateMs: 250 (λ = 4 orders/sec)
-   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
-   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
+   - OrderArrivalRateMs: 450 / BillingServiceCount (λ = 2.2 orders/sec per service)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16 (cμ = 32 orders/sec)
    - Result: Continuously growing queues when c is reduced
+
+4. **lowvariability**: Demonstrates Low Variability, Moderate Utilization
+   - ca = 0.5 (CoefficientOfArrivalVariation)
+   - cs = 0.5 (CoefficientOfServiceVariation)
+   - ρ ≈ 0.7 (utilization)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16
+   - Result: Moderate queueing and wait times with low variability
+
+5. **highservicevariability**: Demonstrates High Service Variability, Moderate Utilization
+   - ca = 0.5 (CoefficientOfArrivalVariation)
+   - cs = 2.0 (CoefficientOfServiceVariation)
+   - ρ ≈ 0.7 (utilization)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16
+   - Result: Longer queueing and wait times due to service variability
+
+6. **highvariability**: Demonstrates High Arrival and Service Variability, High Utilization
+   - ca = 1.5 (CoefficientOfArrivalVariation)
+   - cs = 1.5 (CoefficientOfServiceVariation)
+   - ρ ≈ 0.9 (utilization)
+   - BillingProcessingDelayMs: 500 (μ = 2 orders/sec per service)
+   - Default BillingServiceCount: 16
+   - Result: Very long and highly volatile queueing and wait times
 
 #### Custom Configuration
 
-You can also set custom values by making a POST request to `/api/Configuration` with a JSON body:
+The configuration API in the WiredBrain.Ordering service allows you to fully customize the queueing behavior, including the coefficients of variation. You can do this by making a POST request to `/api/Configuration` with a JSON body containing the desired `QueueConfiguration`.
+
+The `QueueConfiguration` object allows you to set:
+- `OrderArrivalDelayMs`: The delay between order placements in milliseconds (influences arrival rate λ).
+- `BillingProcessingDelayMs`: The *mean* billing processing delay in milliseconds (influences average service time τ).
+- `BillingServiceCount`: The number of concurrent billing services (influences number of servers c).
+- `CoefficientOfArrivalVariation`: The coefficient of variation for arrival times (ca).
+- `CoefficientOfServiceVariation`: The coefficient of variation for service times (cs).
+
+By adjusting `CoefficientOfArrivalVariation` and `CoefficientOfServiceVariation`, you can directly experiment with the impact of variability on the system. Note that the Billing service internally calculates the necessary Gamma distribution parameters (shape and scale) based on the provided `BillingProcessingDelayMs` (mean) and `CoefficientOfServiceVariation` (cs) to simulate service times with the desired characteristics.
+
+Example JSON body:
 
 ```json
 {
-  "orderArrivalRateMs": 500,
+  "orderArrivalDelayMs": 500,
   "billingProcessingDelayMs": 300,
-  "billingServiceCount": 2
+  "billingServiceCount": 2,
+  "coefficientOfArrivalVariation": 0.5,
+  "coefficientOfServiceVariation": 1.0
 }
 ```
+
+**Experimenting with Variability Scenarios (Custom Configuration)**
+
+To demonstrate the impact of variability using Kingman's Formula, you can use the `POST /api/Configuration` endpoint with custom configurations. Here are a few examples:
+
+1.  **Scenario: Low Variability, Moderate Utilization (ca ≈ 0.5, cs ≈ 0.5, ρ ≈ 0.7)**
+    -   Description: This scenario shows the system behavior with relatively low variability in both arrivals and service times, operating at moderate utilization.
+    -   Configuration JSON:
+        ```json
+        {
+          "orderArrivalDelayMs": 350,
+          "billingProcessingDelayMs": 500,
+          "billingServiceCount": 16,
+          "coefficientOfArrivalVariation": 0.5,
+          "coefficientOfServiceVariation": 0.5
+        }
+        ```
+    -   Expected Behavior: Moderate queueing and wait times. The system should remain stable, and observed wait times will be reasonably close to the predictions of Kingman's formula for these coefficient values.
+
+2.  **Scenario: High Service Variability, Moderate Utilization (ca ≈ 0.5, cs ≈ 2.0, ρ ≈ 0.7)**
+    -   Description: This scenario highlights the impact of high variability in service times while keeping arrival variability and utilization the same as the previous scenario.
+    -   Configuration JSON:
+        ```json
+        {
+          "orderArrivalDelayMs": 350,
+          "billingProcessingDelayMs": 500,
+          "billingServiceCount": 16,
+          "coefficientOfArrivalVariation": 0.5,
+          "coefficientOfServiceVariation": 2.0
+        }
+        ```
+    -   Expected Behavior: Significantly longer queueing and wait times compared to the low variability scenario, even though utilization is the same. The dashboard will show more volatile queue lengths and wait times, demonstrating the strong influence of `cs` when utilization is not very low.
+
+3.  **Scenario: High Arrival and Service Variability, High Utilization (ca ≈ 1.5, cs ≈ 1.5, ρ ≈ 0.9)**
+    -   Description: This scenario demonstrates the combined effect of high variability in both arrivals and service times under high utilization.
+    -   Configuration JSON:
+        ```json
+        {
+          "orderArrivalDelayMs": 250,
+          "billingProcessingDelayMs": 500,
+          "billingServiceCount": 16,
+          "coefficientOfArrivalVariation": 1.5,
+          "coefficientOfServiceVariation": 1.5
+        }
+        ```
+    -   Expected Behavior: Very long and highly volatile queueing and wait times. The system will be very sensitive to any fluctuations, potentially showing signs of instability. The dashboard will clearly show the dramatic increase in wait times predicted by Kingman's formula as both variability and utilization are high.
+
+*(Note: All predefined scenarios are available via `/api/Configuration/scenario/{scenarioName}`. The first three scenarios (`underload`, `nearcapacity`, `overload`) set `ca` and `cs` to 0, while the new scenarios (`lowvariability`, `highservicevariability`, `highvariability`) set these coefficients to specific values to demonstrate the impact of variability as described above.)*
+
+#### Dashboard Expectations
+
+When running these scenarios and observing the Grafana dashboard, you should expect to see:
+
+-   **Queue Lengths**: Under low utilization and variability, queue lengths will be minimal. As utilization and/or variability increase, queue lengths will grow, becoming more volatile with higher variability.
+-   **Wait Times**: Similar to queue lengths, wait times will be short in low utilization/variability scenarios and increase significantly as these factors rise. The impact of variability will be evident in the spread and fluctuations of wait times.
+-   **Utilization**: The utilization metric (ρ) will show how busy the billing services are. As ρ approaches 1, you will see the dramatic increase in wait times predicted by Kingman's Formula, an effect amplified by higher variability.
+
+The mathematical relationship: Wait time ≈ (ca² + cs²) / 2 * (ρ / (1-ρ)) * service time will be visually demonstrated by the observed wait times on the dashboard correlating with the configured variability (ca and cs), utilization (ρ), and average service time.
 
 ### Setup
 
