@@ -111,12 +111,16 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(orders_placed_total[1m])",
+          "expr": "rate(orders_placed_total[$__rate_interval])",
+          "fullMetaSearch": false,
           "hide": false,
+          "includeNullMetadata": true,
           "legendFormat": "Arrival Rate (λ)",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "useBackend": false
         },
         {
           "datasource": {
@@ -124,7 +128,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "billing_num_processors * ignoring(instance, job) avg(rate(billing_processing_time_seconds_count[1m])) / avg(rate(billing_processing_time_seconds_sum[1m]))",
+          "expr": "billing_num_processors * ignoring(instance, job) avg(rate(billing_processing_time_seconds_count[$__rate_interval])) / avg(rate(billing_processing_time_seconds_sum[$__rate_interval]))",
           "hide": false,
           "instant": false,
           "legendFormat": "Maximum Service Rate (cμ)",
@@ -137,7 +141,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(billing_processed_total[1m])",
+          "expr": "rate(billing_processed_total[$__rate_interval])",
           "hide": false,
           "instant": false,
           "legendFormat": "Departure Rate",
@@ -234,7 +238,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(billing_processing_time_seconds_sum[1m]) / rate(billing_processing_time_seconds_count[1m])",
+          "expr": "rate(billing_processing_time_seconds_sum[$__rate_interval]) / rate(billing_processing_time_seconds_count[$__rate_interval])",
           "legendFormat": "Service Time (τ)",
           "range": true,
           "refId": "A"
@@ -245,7 +249,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(billing_wait_time_seconds_sum[1m]) / rate(billing_wait_time_seconds_count[1m])",
+          "expr": "rate(billing_wait_time_seconds_sum[$__rate_interval]) / rate(billing_wait_time_seconds_count[$__rate_interval])",
           "hide": false,
           "instant": false,
           "legendFormat": "Wait Time (W)",
@@ -340,11 +344,11 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "avg_over_time(rabbitmq_queue_messages[1m])",
+          "expr": "avg_over_time(rabbitmq_queue_messages[$__interval])",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
-          "legendFormat": "Measured (excluding service time)",
+          "legendFormat": "Measured",
           "range": true,
           "refId": "A",
           "useBackend": false
@@ -356,12 +360,12 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(orders_placed_total[1m]) * ignoring(instance) (rate(billing_wait_time_seconds_sum[1m]) / rate(billing_wait_time_seconds_count[1m]))",
+          "expr": "rate(orders_placed_total[$__rate_interval]) * ignoring(instance) (rate(billing_wait_time_seconds_sum[$__rate_interval]) / rate(billing_wait_time_seconds_count[$__rate_interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
           "instant": false,
-          "legendFormat": "Calculated (including service time)",
+          "legendFormat": "Calculated",
           "range": true,
           "refId": "B",
           "useBackend": false
