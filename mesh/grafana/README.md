@@ -8,7 +8,6 @@ This directory contains the configuration for the Grafana dashboard that visuali
 - `provisioning/`: Contains the Grafana provisioning configuration
   - `dashboards/`: Dashboard auto-provisioning configuration
   - `datasources/`: Data source auto-provisioning configuration
-- `DASHBOARD_SETUP.md`: Step-by-step instructions for manually creating the dashboard in the Grafana UI
 
 ## Accessing the Dashboard
 
