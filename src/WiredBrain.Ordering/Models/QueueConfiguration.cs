@@ -4,6 +4,7 @@ public class QueueConfiguration
 {
     private int _orderArrivalRateMs = 1000;
     private int _billingProcessingDelayMs = 200;
+    private int _billingServiceCount = 4;
 
     /// <summary>
     /// Gets or sets the delay between order placements in milliseconds.
@@ -23,5 +24,15 @@ public class QueueConfiguration
     {
         get => _billingProcessingDelayMs;
         set => _billingProcessingDelayMs = value > 0 ? value : 200;
+    }
+
+    /// <summary>
+    /// Gets or sets the number of billing services available to process orders.
+    /// Default: 4
+    /// </summary>
+    public int BillingServiceCount
+    {
+        get => _billingServiceCount;
+        set => _billingServiceCount = value > 0 ? value : 4;
     }
 }

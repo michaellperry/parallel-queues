@@ -43,6 +43,10 @@ services:
       - "8082:80"  # Expose port for metrics scraping
     depends_on:
       - rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '2'  # Constrain to 2 CPUs
 
   shipping:
     build:

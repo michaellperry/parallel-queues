@@ -30,5 +30,6 @@ public class QueueConfigurationService
     {
         _configuration.OrderArrivalRateMs = configuration.OrderArrivalRateMs;
         _configuration.BillingProcessingDelayMs = configuration.BillingProcessingDelayMs;
+        _configuration.BillingServiceCount = configuration.BillingServiceCount;
     }
 }

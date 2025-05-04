@@ -37,7 +37,8 @@ The demo also illustrates several important queueing theory concepts:
 2. **Impact of Service Time**: How changing processing time affects queue length and wait time
 3. **Bottleneck Identification**: How the slowest service in a chain becomes the system bottleneck
 4. **Service Rate (μ = 1/τ)**: The relationship between processing time and service capacity
-5. **Time in Queue vs. Time in System**: The distinction between waiting time and total time
+5. **Multiple Servers (c)**: How having multiple service instances affects the maximum service rate (cμ)
+6. **Time in Queue vs. Time in System**: The distinction between waiting time and total time
 
 ## Running the Demo
 
@@ -50,7 +51,7 @@ The WiredBrain.Ordering service now provides a REST API for configuring the queu
 The easiest way to interact with the configuration API is through the Swagger UI:
 
 1. Start the services as described below
-2. Open a browser and navigate to `http://localhost:5000/swagger` (or the appropriate port if different)
+2. Open a browser and navigate to `http://localhost:8081/swagger` (or the appropriate port if different)
 3. You'll see the Swagger UI with the available endpoints:
    - `GET /api/Configuration` - Get the current configuration
    - `POST /api/Configuration` - Update the configuration manually
@@ -58,31 +59,46 @@ The easiest way to interact with the configuration API is through the Swagger UI
 
 #### Available Scenarios
 
-You can quickly apply predefined scenarios by making a POST request to `/api/Configuration/scenario/{scenarioName}` where `scenarioName` is one of:
+You can quickly apply predefined scenarios by making a POST request to `/api/Configuration/scenario/{scenarioName}?billingServiceCount={count}` where:
+- `scenarioName` is one of the predefined scenarios listed below
+- `billingServiceCount` (optional) is the number of billing services available (default: 4)
+
+The maximum service rate is calculated as cμ, where:
+- c is the number of services (billingServiceCount)
+- μ is the service rate per service (1/τ, where τ is the processing time in seconds)
+
+For example, with a billing processing delay of 200ms (τ = 0.2s), the service rate per service (μ) is 5 orders/sec. With 4 services (c = 4), the maximum service rate (cμ) becomes 20 orders/sec.
+
+Available scenarios:
 
 1. **underload**: Demonstrates a system under minimal load
-   - OrderArrivalRateMs: 2000 (0.5 orders/sec)
-   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - OrderArrivalRateMs: 2000 (λ = 0.5 orders/sec)
+   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
+   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
    - Result: Minimal queueing, W ≈ τ
 
 2. **nearcapacity**: Demonstrates a system operating near its capacity
-   - OrderArrivalRateMs: 350 (2.86 orders/sec)
-   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
-   - Result: Increasing queue lengths
+   - OrderArrivalRateMs: 350 (λ = 2.86 orders/sec)
+   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
+   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
+   - Result: Increasing queue lengths when c is reduced
 
 3. **overload**: Demonstrates a system under excessive load
-   - OrderArrivalRateMs: 250 (4 orders/sec)
-   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
-   - Result: Continuously growing queues
+   - OrderArrivalRateMs: 250 (λ = 4 orders/sec)
+   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
+   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
+   - Result: Continuously growing queues when c is reduced
 
 4. **servicetime**: Demonstrates the impact of service time on queue length
-   - OrderArrivalRateMs: 300 (3.33 orders/sec)
-   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - OrderArrivalRateMs: 300 (λ = 3.33 orders/sec)
+   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
+   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
    - Result: Shows how changing τ affects queue length
 
 5. **bottleneck**: Demonstrates bottleneck identification
-   - OrderArrivalRateMs: 300 (3.33 orders/sec)
-   - BillingProcessingDelayMs: 400 (service rate = 2.5 orders/sec)
+   - OrderArrivalRateMs: 300 (λ = 3.33 orders/sec)
+   - BillingProcessingDelayMs: 400 (μ = 2.5 orders/sec per service)
+   - Default BillingServiceCount: 4 (cμ = 10 orders/sec)
    - Result: Shows how the slowest service becomes the bottleneck
 
 #### Custom Configuration
@@ -92,7 +108,8 @@ You can also set custom values by making a POST request to `/api/Configuration` 
 ```json
 {
   "orderArrivalRateMs": 500,
-  "billingProcessingDelayMs": 300
+  "billingProcessingDelayMs": 300,
+  "billingServiceCount": 2
 }
 ```
 
@@ -111,7 +128,7 @@ docker-compose up -d --build
 
 This will:
 - Start a RabbitMQ container
-- Build and start the Ordering, Billing, and Shipping service containers
+- Build and start the Ordering, Billing, and Shipping service containers (with Billing constrained to 2 CPUs)
 - Start Prometheus and Grafana containers for metrics collection and visualization
 
 #### 2. Manually Start the Shipping Service
@@ -161,15 +178,22 @@ To stop all services, press Ctrl+C in the terminal where docker-compose is runni
 docker-compose down -v
 ```
 
-## Processing Delays
+## Processing Delays and Service Capacity
 
-The system now handles processing delays in the following way:
+The system now handles processing delays and service capacity in the following way:
 
-1. **Billing Processing Delay**: This delay is now included in the `OrderPlaced` message and can be configured through the API. The Billing service reads this value from each message and uses it for processing.
+1. **Billing Processing Delay**: This delay is included in the `OrderPlaced` message and can be configured through the API. The Billing service reads this value from each message and uses it for processing. This represents τ in the service rate formula μ = 1/τ.
 
-2. **Shipping Processing Delay**: This is now a fixed value of 300ms in the Shipping service.
+2. **Billing Service Count**: This represents the number of concurrent billing services (c) available to process orders. The maximum service rate is calculated as cμ, where μ = 1/τ. This can be configured through the API.
 
-This configuration allows you to experiment with different scenarios by changing the order arrival rate and billing processing delay through the API, while keeping the shipping processing delay constant.
+3. **Shipping Processing Delay**: This is a fixed value of 300ms in the Shipping service.
+
+This configuration allows you to experiment with different scenarios by changing:
+- The order arrival rate (λ)
+- The billing processing delay (τ)
+- The number of billing services (c)
+
+The Billing service is constrained to 2 CPUs in the docker-compose configuration, which can affect the actual number of concurrent messages that can be processed.
 
 ## Further Reading
 
