@@ -4,7 +4,7 @@ public class QueueConfiguration
 {
     private int _orderArrivalDelayMs = 1000;
     private int _billingProcessingDelayMs = 200;
-    private int _billingServiceCount = 4;
+    private int _billingServiceCount = 16;
 
     /// <summary>
     /// Gets or sets the delay between order placements in milliseconds.
@@ -33,6 +33,6 @@ public class QueueConfiguration
     public int BillingServiceCount
     {
         get => _billingServiceCount;
-        set => _billingServiceCount = value > 0 ? value : 4;
+        set => _billingServiceCount = value > 0 ? value : 16;
     }
 }
