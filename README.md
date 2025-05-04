@@ -4,18 +4,16 @@ This project demonstrates a microservices architecture for the WiredBrain coffee
 
 ## Project Structure
 
-- **WiredBrain.Ordering**: Service that handles customer orders
+- **WiredBrain.Ordering**: Service that handles customer orders and provides configuration API
 - **WiredBrain.Billing**: Service that processes payments
 - **WiredBrain.Shipping**: Service that prepares shipments
 - **WiredBrain.Messages**: Shared message contracts
 - **mesh**: Infrastructure components (RabbitMQ, Prometheus, Grafana)
-- **demo.sh**: Script to demonstrate Little's Law scenarios
 
 ## Prerequisites
 
 - Docker and Docker Compose
 - .NET 9.0 SDK (for development)
-- Bash shell (for running the demo script)
 
 ## Key Concepts Demonstrated
 
@@ -43,28 +41,62 @@ The demo also illustrates several important queueing theory concepts:
 
 ## Running the Demo
 
-### Using the Demo Script
+### Configuration API
 
-The easiest way to explore the concepts is to use the provided demo script:
+The WiredBrain.Ordering service now provides a REST API for configuring the queueing behavior of the system. This allows you to experiment with different scenarios without restarting the services.
 
-```bash
-./demo.sh
+#### Using the Swagger UI
+
+The easiest way to interact with the configuration API is through the Swagger UI:
+
+1. Start the services as described below
+2. Open a browser and navigate to `http://localhost:5000/swagger` (or the appropriate port if different)
+3. You'll see the Swagger UI with the available endpoints:
+   - `GET /api/Configuration` - Get the current configuration
+   - `POST /api/Configuration` - Update the configuration manually
+   - `POST /api/Configuration/scenario/{scenarioName}` - Apply a predefined scenario
+
+#### Available Scenarios
+
+You can quickly apply predefined scenarios by making a POST request to `/api/Configuration/scenario/{scenarioName}` where `scenarioName` is one of:
+
+1. **underload**: Demonstrates a system under minimal load
+   - OrderArrivalRateMs: 2000 (0.5 orders/sec)
+   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - Result: Minimal queueing, W ≈ τ
+
+2. **nearcapacity**: Demonstrates a system operating near its capacity
+   - OrderArrivalRateMs: 350 (2.86 orders/sec)
+   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - Result: Increasing queue lengths
+
+3. **overload**: Demonstrates a system under excessive load
+   - OrderArrivalRateMs: 250 (4 orders/sec)
+   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - Result: Continuously growing queues
+
+4. **servicetime**: Demonstrates the impact of service time on queue length
+   - OrderArrivalRateMs: 300 (3.33 orders/sec)
+   - BillingProcessingDelayMs: 200 (service rate = 5 orders/sec)
+   - Result: Shows how changing τ affects queue length
+
+5. **bottleneck**: Demonstrates bottleneck identification
+   - OrderArrivalRateMs: 300 (3.33 orders/sec)
+   - BillingProcessingDelayMs: 400 (service rate = 2.5 orders/sec)
+   - Result: Shows how the slowest service becomes the bottleneck
+
+#### Custom Configuration
+
+You can also set custom values by making a POST request to `/api/Configuration` with a JSON body:
+
+```json
+{
+  "orderArrivalRateMs": 500,
+  "billingProcessingDelayMs": 300
+}
 ```
 
-This interactive script allows you to:
-1. Run predefined scenarios demonstrating different queueing theory concepts
-2. See explanations of what to observe in each scenario
-3. Understand the theoretical principles behind each demonstration
-
-### Scenarios Included
-
-1. **Scenario A (Underload)**: λ < 1/τ - Minimal queueing, W ≈ τ
-2. **Scenario B (Near Capacity)**: λ ≈ 1/τ - Increasing queue lengths
-3. **Scenario C (Overload)**: λ > 1/τ - Continuously growing queues
-4. **Scenario D (Impact of Service Time)**: Shows how changing τ affects queue length
-5. **Scenario E (Bottleneck Identification)**: Demonstrates how the slowest service becomes the bottleneck
-
-### Manual Setup
+### Setup
 
 If you prefer to run the services manually:
 
@@ -129,13 +161,15 @@ To stop all services, press Ctrl+C in the terminal where docker-compose is runni
 docker-compose down -v
 ```
 
-## Customizing the Demo
+## Processing Delays
 
-You can modify the following environment variables in the docker-compose.yml file to experiment with different scenarios:
+The system now handles processing delays in the following way:
 
-- `ORDER_ARRIVAL_RATE_MS`: Controls the arrival rate (λ)
-- `BILLING_PROCESSING_DELAY_MS`: Controls the billing processing time (τ)
-- `SHIPPING_PROCESSING_DELAY_MS`: Controls the shipping processing time (τ)
+1. **Billing Processing Delay**: This delay is now included in the `OrderPlaced` message and can be configured through the API. The Billing service reads this value from each message and uses it for processing.
+
+2. **Shipping Processing Delay**: This is now a fixed value of 300ms in the Shipping service.
+
+This configuration allows you to experiment with different scenarios by changing the order arrival rate and billing processing delay through the API, while keeping the shipping processing delay constant.
 
 ## Further Reading
 
@@ -147,3 +181,4 @@ For more detailed information about the implementation and the metrics used to d
 - All services connect to RabbitMQ using the hostname "rabbitmq"
 - Each service has its own Dockerfile in its respective directory
 - Metrics are exposed via Prometheus endpoints and visualized in Grafana
+- The configuration API allows for dynamic adjustment of system parameters without restarting services
