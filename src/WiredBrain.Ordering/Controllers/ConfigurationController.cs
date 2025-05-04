@@ -55,13 +55,25 @@ public class ConfigurationController : ControllerBase
             return BadRequest("BillingServiceCount must be greater than 0");
         }
 
+        if (configuration.CoefficientOfArrivalVariation < 0)
+        {
+            return BadRequest("CoefficientOfArrivalVariation must be greater than or equal to 0");
+        }
+
+        if (configuration.CoefficientOfServiceVariation < 0)
+        {
+            return BadRequest("CoefficientOfServiceVariation must be greater than or equal to 0");
+        }
+
         _configService.UpdateConfiguration(configuration);
         
         _logger.LogInformation(
-            "Configuration updated: OrderArrivalDelayMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}",
+            "Configuration updated: OrderArrivalDelayMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}, Ca={Ca}, Cs={Cs}",
             configuration.OrderArrivalDelayMs,
             configuration.BillingProcessingDelayMs,
-            configuration.BillingServiceCount);
+            configuration.BillingServiceCount,
+            configuration.CoefficientOfArrivalVariation,
+            configuration.CoefficientOfServiceVariation);
 
         return Ok(_configService.GetConfiguration());
     }
@@ -111,11 +123,13 @@ public class ConfigurationController : ControllerBase
         _configService.UpdateConfiguration(config);
         
         _logger.LogInformation(
-            "Scenario {ScenarioName} applied: OrderArrivalRateMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}",
+            "Scenario {ScenarioName} applied: OrderArrivalRateMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}, Ca={Ca}, Cs={Cs}",
             scenarioName,
             config.OrderArrivalDelayMs,
             config.BillingProcessingDelayMs,
-            config.BillingServiceCount);
+            config.BillingServiceCount,
+            config.CoefficientOfArrivalVariation,
+            config.CoefficientOfServiceVariation);
             
         return Ok(_configService.GetConfiguration());
     }

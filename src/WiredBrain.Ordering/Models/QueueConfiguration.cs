@@ -5,6 +5,8 @@ public class QueueConfiguration
     private int _orderArrivalDelayMs = 300;
     private int _billingProcessingDelayMs = 500;
     private int _billingServiceCount = 16;
+    private double _coefficientOfArrivalVariation = 0;
+    private double _coefficientOfServiceVariation = 0;
 
     /// <summary>
     /// Gets or sets the delay between order placements in milliseconds.
@@ -34,5 +36,27 @@ public class QueueConfiguration
     {
         get => _billingServiceCount;
         set => _billingServiceCount = value > 0 ? value : 16;
+    }
+
+    /// <summary>
+    /// Gets or sets the coefficient of arrival variation (ca).
+    /// This represents the variability in arrival rates.
+    /// Default: 0 (no variance)
+    /// </summary>
+    public double CoefficientOfArrivalVariation
+    {
+        get => _coefficientOfArrivalVariation;
+        set => _coefficientOfArrivalVariation = value >= 0 ? value : 0;
+    }
+
+    /// <summary>
+    /// Gets or sets the coefficient of service variation (cs).
+    /// This represents the variability in service rates.
+    /// Default: 0 (no variance)
+    /// </summary>
+    public double CoefficientOfServiceVariation
+    {
+        get => _coefficientOfServiceVariation;
+        set => _coefficientOfServiceVariation = value >= 0 ? value : 0;
     }
 }

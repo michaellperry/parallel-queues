@@ -64,23 +64,32 @@ async Task PublishOrdersAsync()
             // Start a stopwatch to measure the time taken for order placement
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            // Get the current configuration
+            // Get the current configuration and randomized delays
             var config = configService.GetConfiguration();
-            var order = GenerateRandomOrder(config.BillingProcessingDelayMs);
+            var randomizedProcessingDelay = configService.GetRandomizedBillingProcessingDelay();
+            var order = GenerateRandomOrder(randomizedProcessingDelay);
             
             await busControl.Publish<OrderPlaced>(order);
             
             // Track the order placement in metrics
             OrderingMetrics.TrackOrderPlaced();
             
-            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} (Delay: {config.OrderArrivalDelayMs}ms)");
+            // Calculate expected wait time using Kingman's formula
+            var expectedWaitTime = configService.CalculateExpectedWaitTime();
+            var expectedWaitTimeStr = double.IsPositiveInfinity(expectedWaitTime) ? "∞" : $"{expectedWaitTime:F2}ms";
+            
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} " +
+                             $"(Base Delay: {config.OrderArrivalDelayMs}ms, Processing: {randomizedProcessingDelay}ms, " +
+                             $"Expected Wait: {expectedWaitTimeStr})");
 
             // Stop the stopwatch and calculate the elapsed time
             stopwatch.Stop();
             var elapsedTime = stopwatch.ElapsedMilliseconds;
 
             // Calculate the remaining time to wait before publishing the next order
-            var waitTime = config.OrderArrivalDelayMs - elapsedTime;
+            // Use the randomized arrival delay based on the coefficient of arrival variation
+            var randomizedArrivalDelay = configService.GetRandomizedOrderArrivalDelay();
+            var waitTime = randomizedArrivalDelay - elapsedTime;
             if (waitTime > 0)
             {
                 await Task.Delay((int)waitTime);
@@ -97,6 +106,8 @@ OrderPlaced GenerateRandomOrder(int billingProcessingDelayMs)
 {
     var random = new Random();
     var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
+    var configService = app.Services.GetRequiredService<QueueConfigurationService>();
+    var config = configService.GetConfiguration();
     
     return new OrderPlaced
     {
@@ -104,6 +115,7 @@ OrderPlaced GenerateRandomOrder(int billingProcessingDelayMs)
         CustomerName = customers[random.Next(customers.Length)],
         OrderDate = DateTime.UtcNow,
         Amount = (decimal)Math.Round(random.NextSingle() * 100, 2),
-        BillingProcessingDelayMs = billingProcessingDelayMs
+        BillingProcessingDelayMs = billingProcessingDelayMs,
+        CoefficientOfServiceVariation = config.CoefficientOfServiceVariation
     };
 }
