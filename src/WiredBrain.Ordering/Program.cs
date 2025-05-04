@@ -70,9 +70,9 @@ async Task PublishOrdersAsync()
             // Track the order placement in metrics
             OrderingMetrics.TrackOrderPlaced();
             
-            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} (Delay: {config.OrderArrivalRateMs}ms)");
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} (Delay: {config.OrderArrivalDelayMs}ms)");
             
-            await Task.Delay(config.OrderArrivalRateMs);
+            await Task.Delay(config.OrderArrivalDelayMs * config.BillingServiceCount);
         }
     }
     catch (Exception ex)

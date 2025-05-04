@@ -2,7 +2,7 @@ namespace WiredBrain.Ordering.Models;
 
 public class QueueConfiguration
 {
-    private int _orderArrivalRateMs = 1000;
+    private int _orderArrivalDelayMs = 1000;
     private int _billingProcessingDelayMs = 200;
     private int _billingServiceCount = 4;
 
@@ -10,10 +10,10 @@ public class QueueConfiguration
     /// Gets or sets the delay between order placements in milliseconds.
     /// Default: 1000ms (1 order per second)
     /// </summary>
-    public int OrderArrivalRateMs
+    public int OrderArrivalDelayMs
     {
-        get => _orderArrivalRateMs;
-        set => _orderArrivalRateMs = value > 0 ? value : 1000;
+        get => _orderArrivalDelayMs;
+        set => _orderArrivalDelayMs = value > 0 ? value : 1000;
     }
 
     /// <summary>

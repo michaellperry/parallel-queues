@@ -24,6 +24,5 @@ EXPOSE 9090
 
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:80
-ENV ORDER_ARRIVAL_RATE_MS=1000
 
 ENTRYPOINT ["dotnet", "WiredBrain.Ordering.dll"]

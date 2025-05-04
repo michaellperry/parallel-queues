@@ -40,9 +40,9 @@ public class ConfigurationController : ControllerBase
             return BadRequest("Configuration cannot be null");
         }
 
-        if (configuration.OrderArrivalRateMs <= 0)
+        if (configuration.OrderArrivalDelayMs <= 0)
         {
-            return BadRequest("OrderArrivalRateMs must be greater than 0");
+            return BadRequest("OrderArrivalDelayMs must be greater than 0");
         }
 
         if (configuration.BillingProcessingDelayMs <= 0)
@@ -58,8 +58,8 @@ public class ConfigurationController : ControllerBase
         _configService.UpdateConfiguration(configuration);
         
         _logger.LogInformation(
-            "Configuration updated: OrderArrivalRateMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}",
-            configuration.OrderArrivalRateMs,
+            "Configuration updated: OrderArrivalDelayMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}",
+            configuration.OrderArrivalDelayMs,
             configuration.BillingProcessingDelayMs,
             configuration.BillingServiceCount);
 
@@ -88,31 +88,31 @@ public class ConfigurationController : ControllerBase
         {
             case "underload":
                 // Scenario A: Underload (λ < cμ)
-                config.OrderArrivalRateMs = 2000; // λ = 0.5 orders/sec
+                config.OrderArrivalDelayMs = 2000; // λ = 0.5 orders/sec
                 config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
                 break;
                 
             case "nearcapacity":
                 // Scenario B: Near Capacity (λ ≈ cμ)
-                config.OrderArrivalRateMs = 350; // λ = 2.86 orders/sec
+                config.OrderArrivalDelayMs = 350; // λ = 2.86 orders/sec
                 config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
                 break;
                 
             case "overload":
                 // Scenario C: Overload (λ > cμ)
-                config.OrderArrivalRateMs = 250; // λ = 4 orders/sec
+                config.OrderArrivalDelayMs = 250; // λ = 4 orders/sec
                 config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
                 break;
                 
             case "servicetime":
                 // Scenario D: Impact of Service Time
-                config.OrderArrivalRateMs = 300; // λ = 3.33 orders/sec
+                config.OrderArrivalDelayMs = 300; // λ = 3.33 orders/sec
                 config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
                 break;
                 
             case "bottleneck":
                 // Scenario E: Bottleneck Identification
-                config.OrderArrivalRateMs = 300; // λ = 3.33 orders/sec
+                config.OrderArrivalDelayMs = 300; // λ = 3.33 orders/sec
                 config.BillingProcessingDelayMs = 400; // μ = 2.5 orders/sec per service
                 break;
                 
@@ -125,7 +125,7 @@ public class ConfigurationController : ControllerBase
         _logger.LogInformation(
             "Scenario {ScenarioName} applied: OrderArrivalRateMs={OrderArrivalRateMs}, BillingProcessingDelayMs={BillingProcessingDelayMs}, BillingServiceCount={BillingServiceCount}",
             scenarioName,
-            config.OrderArrivalRateMs,
+            config.OrderArrivalDelayMs,
             config.BillingProcessingDelayMs,
             config.BillingServiceCount);
             
