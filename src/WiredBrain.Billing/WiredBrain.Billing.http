@@ -1,0 +1,6 @@
+@WiredBrain.Billing_HostAddress = http://localhost:5080
+
+GET {{WiredBrain.Billing_HostAddress}}/billing/
+Accept: application/json
+
+###

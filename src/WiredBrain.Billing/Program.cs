@@ -1,62 +1,48 @@
-﻿using MassTransit;
-using WiredBrain.Messages;
-using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using System.Diagnostics;
+using MassTransit;
+using Prometheus;
+using WiredBrain.Billing;
 
-namespace WiredBrain.Billing;
+var builder = WebApplication.CreateBuilder(args);
 
-public class Program
+// Add services to the container.
+builder.Services.AddMassTransit(x =>
 {
-    public static async Task Main()
+    x.UsingRabbitMq((context, cfg) =>
     {
-        var meterProvider = Sdk.CreateMeterProviderBuilder()
-            .AddPrometheusExporter()
-            .Build();
-
-        // Configure MassTransit with RabbitMQ
-        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
-        {
-            cfg.Host("rabbitmq", "/");
+        cfg.Host("rabbitmq", "/");
             
-            cfg.ReceiveEndpoint("billing-service", e =>
-            {
-                e.Consumer<OrderPlacedConsumer>();
-            });
+        cfg.ReceiveEndpoint("billing-service", e =>
+        {
+            e.Consumer<OrderPlacedConsumer>();
+            
+            // Use the default MassTransit concurrency settings based on CPU count
+            int concurrentMessages = e.ConcurrentMessageLimit ?? e.PrefetchCount;
+            BillingMetrics.TrackNumProcessors(concurrentMessages); // Track the number of concurrent messages that can be processed
+            
+            Console.WriteLine($"Billing service configured with {concurrentMessages} concurrent processors");
         });
+    });
+});
 
-        await busControl.StartAsync();
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 
-        try
-        {
-            Console.WriteLine("Billing Service Started. Listening for orders...");
-            await Task.Delay(Timeout.InfiniteTimeSpan);
-        }
-        finally
-        {
-            await busControl.StopAsync();
-            meterProvider.Dispose();
-        }
-    }
-}
+var app = builder.Build();
 
-public class OrderPlacedConsumer : IConsumer<OrderPlaced>
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    private static readonly Meter Meter = new Meter("WiredBrain.Billing");
-    private static readonly Histogram<double> WaitTimeHistogram = Meter.CreateHistogram<double>("wait_time");
-    private static readonly Counter<long> ProcessingTimeCounter = Meter.CreateCounter<long>("processing_time");
-
-    public Task Consume(ConsumeContext<OrderPlaced> context)
-    {
-        var order = context.Message;
-        var waitTime = (DateTime.UtcNow - order.OrderDate).TotalSeconds;
-        WaitTimeHistogram.Record(waitTime);
-
-        var stopwatch = Stopwatch.StartNew();
-        Console.WriteLine($"Processing payment for order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
-        stopwatch.Stop();
-        ProcessingTimeCounter.Add(stopwatch.ElapsedMilliseconds);
-
-        return Task.CompletedTask;
-    }
+    app.MapOpenApi();
 }
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.UseMetricServer(); // Exposes /metrics endpoint
+app.UseHttpMetrics();  // Collects HTTP request metrics
+
+app.MapControllers();
+
+app.Run();
