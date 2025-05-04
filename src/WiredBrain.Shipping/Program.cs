@@ -37,18 +37,8 @@ app.Run();
 
 public class OrderPlacedConsumer : IConsumer<OrderPlaced>
 {
-    // Get the processing delay from environment variable or use default value (300ms)
-    private static readonly int ProcessingDelayMs = GetProcessingDelayFromEnvironment();
-
-    private static int GetProcessingDelayFromEnvironment()
-    {
-        string? delayStr = Environment.GetEnvironmentVariable("SHIPPING_PROCESSING_DELAY_MS");
-        if (int.TryParse(delayStr, out int delay) && delay > 0)
-        {
-            return delay;
-        }
-        return 300; // Default delay if not specified or invalid
-    }
+    // Fixed processing delay of 300ms
+    private static readonly int ProcessingDelayMs = 300;
 
     public async Task Consume(ConsumeContext<OrderPlaced> context)
     {
@@ -57,7 +47,7 @@ public class OrderPlacedConsumer : IConsumer<OrderPlaced>
         var stopwatch = Stopwatch.StartNew();
         Console.WriteLine($"Preparing shipment for order: {order.OrderId} for {order.CustomerName}");
         
-        // Use the configurable delay instead of hardcoded value
+        // Use the fixed processing delay
         await Task.Delay(ProcessingDelayMs);
         
         stopwatch.Stop();
