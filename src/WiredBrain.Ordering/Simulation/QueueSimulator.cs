@@ -15,17 +15,14 @@ public class QueueSimulator
             return mean;
         }
 
-        // Calculate the shape (k) and scale (theta) parameters for the Gamma distribution
-        // In this case, μ is mean, not service rate
-        double variance = cv * mean * cv * mean;  // σ = CV * μ, so variance = σ^2 = (CV * μ)^2
-        double scale = variance / mean;  // scale = variance / mean
-        double shape = mean * mean / variance;  // k = μ^2 / σ^2
+        // Calculate the shape (alpha) and rate (lambda) parameters for the Gamma distribution
+        double shape = 1 / (cv * cv);  // Shape parameter: alpha = 1 / CV^2
+        double rate = 1 / (mean * cv * cv);  // Rate parameter: lambda = 1 / (mean * CV^2)
 
-        // Create a Gamma distribution for the service time
-        var gammaDist = new Gamma(shape, scale, _random);
+        // Create a Gamma distribution for the service time using the calculated parameters
+        var gammaDist = new Gamma(shape, rate, _random);
 
         // Sample from the Gamma distribution (this gives the service time)
         return gammaDist.Sample();
-
     }
 }
