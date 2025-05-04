@@ -2,15 +2,32 @@ name: parallel-queues
 
 services:
   rabbitmq:
-    image: masstransit/rabbitmq:4.0.2
+    image: rabbitmq:3.13-management
     ports:
       - "15672:15672"  # Management UI
       - "5672:5672"    # AMQP port
+      - "15692:15692"  # Prometheus metrics
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   ordering:
     build:
       context: ../src
       dockerfile: WiredBrain.Ordering/Dockerfile
+    ports:
+      - "8081:80"
     depends_on:
       - rabbitmq
 
@@ -18,12 +35,45 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Billing/Dockerfile
+    environment:
+      - BILLING_PROCESSING_DELAY_MS=200
+    ports:
+      - "8082:80"  # Expose port for metrics scraping
     depends_on:
       - rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '2'  # Constrain to 2 CPUs
 
   shipping:
     build:
       context: ../src
       dockerfile: WiredBrain.Shipping/Dockerfile
+    environment:
+      - SHIPPING_PROCESSING_DELAY_MS=300
+    ports:
+      - "8083:80"  # Expose port for metrics scraping
     depends_on:
       - rabbitmq
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    depends_on:
+      - prometheus

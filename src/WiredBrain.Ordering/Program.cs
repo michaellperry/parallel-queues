@@ -1,50 +1,116 @@
-﻿using MassTransit;
+﻿﻿using MassTransit;
+using Prometheus;
 using WiredBrain.Messages;
+using WiredBrain.Ordering;
+using WiredBrain.Ordering.Services;
+using WiredBrain.Ordering.Simulation;
 
-namespace WiredBrain.Ordering;
+var builder = WebApplication.CreateBuilder(args);
 
-public class Program
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
 {
-    public static async Task Main()
+    c.SwaggerDoc("v1", new() { Title = "WiredBrain.Ordering API", Version = "v1" });
+});
+
+// Register the configuration service as a singleton
+builder.Services.AddSingleton<QueueConfigurationService>();
+
+// Configure MassTransit with RabbitMQ
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
     {
-        // Configure MassTransit with RabbitMQ
-        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
-        {
-            cfg.Host("rabbitmq", "/");
-        });
+        cfg.Host("rabbitmq", "/");
+    });
+});
 
-        await busControl.StartAsync();
+var app = builder.Build();
 
-        try
+// Configure the HTTP request pipeline
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+
+// Configure metrics endpoint
+app.UseMetricServer();
+app.UseHttpMetrics();
+
+// Map controllers
+app.MapControllers();
+
+// Start the order publishing background service
+Task.Run(async () => await PublishOrdersAsync());
+
+app.Run();
+
+async Task PublishOrdersAsync()
+{
+    // Get the bus from the service provider
+    var busControl = app.Services.GetRequiredService<IBus>();
+    var configService = app.Services.GetRequiredService<QueueConfigurationService>();
+
+    try
+    {
+        Console.WriteLine("Ordering Service Started. Publishing orders...");
+        QueueSimulator queueSimulator = new();
+        
+        // Publish orders at the configured rate
+        while (true)
         {
-            Console.WriteLine("Ordering Service Started. Publishing orders every second...");
+            // Start a stopwatch to measure the time taken for order placement
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            // Get the current configuration and randomized delays
+            var config = configService.GetConfiguration();
+            var randomizedProcessingDelay = queueSimulator.GenerateRandomTime(config.BillingProcessingDelayMs, config.CoefficientOfServiceVariation);
+            var order = GenerateRandomOrder((int)randomizedProcessingDelay);
             
-            // Publish an order every second
-            while (true)
+            await busControl.Publish<OrderPlaced>(order);
+            
+            // Track the order placement in metrics
+            OrderingMetrics.TrackOrderPlaced();
+
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+
+            // Stop the stopwatch and calculate the elapsed time
+            stopwatch.Stop();
+            var elapsedTime = stopwatch.ElapsedMilliseconds;
+
+            // Calculate the remaining time to wait before publishing the next order
+            // Use the randomized arrival delay based on the coefficient of arrival variation
+            var randomizedArrivalDelay = queueSimulator.GenerateRandomTime(config.OrderArrivalDelayMs, config.CoefficientOfArrivalVariation);
+            var waitTime = randomizedArrivalDelay - elapsedTime;
+            if (waitTime > 0)
             {
-                var order = GenerateRandomOrder();
-                await busControl.Publish<OrderPlaced>(order);
-                Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
-                await Task.Delay(1000);
+                await Task.Delay((int)waitTime);
             }
         }
-        finally
-        {
-            await busControl.StopAsync();
-        }
     }
-
-    private static OrderPlaced GenerateRandomOrder()
+    catch (Exception ex)
     {
-        var random = new Random();
-        var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
-        
-        return new OrderPlaced
-        {
-            OrderId = Guid.NewGuid(),
-            CustomerName = customers[random.Next(customers.Length)],
-            OrderDate = DateTime.UtcNow,
-            Amount = (decimal)Math.Round(random.NextSingle() * 100, 2)
-        };
+        Console.WriteLine($"Error publishing orders: {ex.Message}");
     }
+}
+
+OrderPlaced GenerateRandomOrder(int billingProcessingDelayMs)
+{
+    var random = new Random();
+    var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
+    var configService = app.Services.GetRequiredService<QueueConfigurationService>();
+    var config = configService.GetConfiguration();
+    
+    return new OrderPlaced
+    {
+        OrderId = Guid.NewGuid(),
+        CustomerName = customers[random.Next(customers.Length)],
+        OrderDate = DateTime.UtcNow,
+        Amount = (decimal)Math.Round(random.NextSingle() * 100, 2),
+        BillingProcessingDelayMs = billingProcessingDelayMs,
+        CoefficientOfServiceVariation = config.CoefficientOfServiceVariation
+    };
 }

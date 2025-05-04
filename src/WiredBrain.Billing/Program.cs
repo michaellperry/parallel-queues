@@ -1,43 +1,48 @@
-﻿using MassTransit;
-using WiredBrain.Messages;
+using MassTransit;
+using Prometheus;
+using WiredBrain.Billing;
 
-namespace WiredBrain.Billing;
+var builder = WebApplication.CreateBuilder(args);
 
-public class Program
+// Add services to the container.
+builder.Services.AddMassTransit(x =>
 {
-    public static async Task Main()
+    x.UsingRabbitMq((context, cfg) =>
     {
-        // Configure MassTransit with RabbitMQ
-        var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
-        {
-            cfg.Host("rabbitmq", "/");
+        cfg.Host("rabbitmq", "/");
             
-            cfg.ReceiveEndpoint("billing-service", e =>
-            {
-                e.Consumer<OrderPlacedConsumer>();
-            });
+        cfg.ReceiveEndpoint("billing-service", e =>
+        {
+            e.Consumer<OrderPlacedConsumer>();
+            
+            // Use the default MassTransit concurrency settings based on CPU count
+            int concurrentMessages = e.ConcurrentMessageLimit ?? e.PrefetchCount;
+            BillingMetrics.TrackNumProcessors(concurrentMessages); // Track the number of concurrent messages that can be processed
+            
+            Console.WriteLine($"Billing service configured with {concurrentMessages} concurrent processors");
         });
+    });
+});
 
-        await busControl.StartAsync();
+builder.Services.AddControllers();
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 
-        try
-        {
-            Console.WriteLine("Billing Service Started. Listening for orders...");
-            await Task.Delay(Timeout.InfiniteTimeSpan);
-        }
-        finally
-        {
-            await busControl.StopAsync();
-        }
-    }
-}
+var app = builder.Build();
 
-public class OrderPlacedConsumer : IConsumer<OrderPlaced>
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    public Task Consume(ConsumeContext<OrderPlaced> context)
-    {
-        var order = context.Message;
-        Console.WriteLine($"Processing payment for order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
-        return Task.CompletedTask;
-    }
+    app.MapOpenApi();
 }
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.UseMetricServer(); // Exposes /metrics endpoint
+app.UseHttpMetrics();  // Collects HTTP request metrics
+
+app.MapControllers();
+
+app.Run();
