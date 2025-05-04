@@ -1,9 +1,22 @@
-﻿using MassTransit;
+﻿﻿using MassTransit;
+using Microsoft.OpenApi.Models;
 using Prometheus;
 using WiredBrain.Messages;
 using WiredBrain.Ordering;
+using WiredBrain.Ordering.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "WiredBrain.Ordering API", Version = "v1" });
+});
+
+// Register the configuration service as a singleton
+builder.Services.AddSingleton<QueueConfigurationService>();
 
 // Configure MassTransit with RabbitMQ
 builder.Services.AddMassTransit(x =>
@@ -16,8 +29,22 @@ builder.Services.AddMassTransit(x =>
 
 var app = builder.Build();
 
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+
 // Configure metrics endpoint
 app.UseMetricServer();
+app.UseHttpMetrics();
+
+// Map controllers
+app.MapControllers();
 
 // Start the order publishing background service
 Task.Run(async () => await PublishOrdersAsync());
@@ -28,29 +55,27 @@ async Task PublishOrdersAsync()
 {
     // Get the bus from the service provider
     var busControl = app.Services.GetRequiredService<IBus>();
+    var configService = app.Services.GetRequiredService<QueueConfigurationService>();
 
     try
     {
         Console.WriteLine("Ordering Service Started. Publishing orders...");
         
-        // Get the configurable arrival rate from environment variable or use default
-        var orderArrivalRateMs = Environment.GetEnvironmentVariable("ORDER_ARRIVAL_RATE_MS");
-        var delayMs = string.IsNullOrEmpty(orderArrivalRateMs) ? 1000 : int.Parse(orderArrivalRateMs);
-        
-        Console.WriteLine($"Order arrival rate set to: {delayMs}ms between orders");
-        
         // Publish orders at the configured rate
         while (true)
         {
-            var order = GenerateRandomOrder();
+            // Get the current configuration
+            var config = configService.GetConfiguration();
+            var order = GenerateRandomOrder(config.BillingProcessingDelayMs);
+            
             await busControl.Publish<OrderPlaced>(order);
             
             // Track the order placement in metrics
             OrderingMetrics.TrackOrderPlaced();
             
-            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} (Delay: {config.OrderArrivalRateMs}ms)");
             
-            await Task.Delay(delayMs);
+            await Task.Delay(config.OrderArrivalRateMs);
         }
     }
     catch (Exception ex)
@@ -59,7 +84,7 @@ async Task PublishOrdersAsync()
     }
 }
 
-OrderPlaced GenerateRandomOrder()
+OrderPlaced GenerateRandomOrder(int billingProcessingDelayMs)
 {
     var random = new Random();
     var customers = new[] { "John", "Jane", "Bob", "Alice", "Charlie" };
@@ -69,6 +94,7 @@ OrderPlaced GenerateRandomOrder()
         OrderId = Guid.NewGuid(),
         CustomerName = customers[random.Next(customers.Length)],
         OrderDate = DateTime.UtcNow,
-        Amount = (decimal)Math.Round(random.NextSingle() * 100, 2)
+        Amount = (decimal)Math.Round(random.NextSingle() * 100, 2),
+        BillingProcessingDelayMs = billingProcessingDelayMs
     };
 }
