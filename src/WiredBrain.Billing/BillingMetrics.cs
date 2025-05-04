@@ -4,6 +4,16 @@ namespace WiredBrain.Billing;
 
 public static class BillingMetrics
 {
+    // Define a Prometheus Gauge to track the potential capacity for consumers
+    private static readonly Gauge NumProcessorsGauge = Metrics
+        .CreateGauge("billing_num_processors", "The number of messages that can be processed concurrently");
+
+    // Track the number of concurrent messages that can be processed
+    public static void TrackNumProcessors(int numProcessors)
+    {
+        NumProcessorsGauge.Set(numProcessors);
+    }
+
     // Create a histogram metric for tracking total time in system (W)
     private static readonly Histogram WaitTimeHistogram = Metrics
         .CreateHistogram("billing_wait_time_seconds", "Tracks the total time in system (W) in seconds", new HistogramConfiguration
@@ -15,7 +25,7 @@ public static class BillingMetrics
     // Track total time in system (W) (from order creation to processing completion)
     public static void TrackWaitTime(double waitTime)
     {
-        WaitTimeHistogram.Observe(waitTime); // Record the wait time to the histogram
+        WaitTimeHistogram.Observe(waitTime);
     }
 
     // Create a histogram metric for tracking processing time (τ)

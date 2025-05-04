@@ -14,6 +14,8 @@ builder.Services.AddMassTransit(x =>
         cfg.ReceiveEndpoint("billing-service", e =>
         {
             e.Consumer<OrderPlacedConsumer>();
+            int concurrentMessages = e.ConcurrentMessageLimit ?? e.PrefetchCount;
+            BillingMetrics.TrackNumProcessors(concurrentMessages); // Track the number of concurrent messages that can be processed
         });
     });
 });

@@ -112,13 +112,40 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(orders_placed_total[5m])",
-          "legendFormat": "__auto",
+          "expr": "rate(orders_placed_total[1m])",
+          "hide": false,
+          "legendFormat": "Arrival Rate (λ)",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "billing_num_processors * ignoring(instance, job) avg(rate(billing_processing_time_seconds_count[1m])) / avg(rate(billing_processing_time_seconds_sum[1m]))",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Maximum Service Rate (cμ)",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "rate(billing_processed_total[1m])",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Departure Rate",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "title": "Arrival Rate (λ)",
+      "title": "Billing Rates",
       "type": "timeseries"
     },
     {
@@ -207,7 +234,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(billing_processing_time_seconds_sum[5m]) / rate(billing_processing_time_seconds_count[5m])",
+          "expr": "rate(billing_processing_time_seconds_sum[1m]) / rate(billing_processing_time_seconds_count[1m])",
           "legendFormat": "Service Time (τ)",
           "range": true,
           "refId": "A"
@@ -218,7 +245,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(billing_wait_time_seconds_sum[5m]) / rate(billing_wait_time_seconds_count[5m])",
+          "expr": "rate(billing_wait_time_seconds_sum[1m]) / rate(billing_wait_time_seconds_count[1m])",
           "hide": false,
           "instant": false,
           "legendFormat": "Wait Time (W)",
@@ -313,7 +340,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "avg_over_time(rabbitmq_queue_messages{}[5m])",
+          "expr": "avg_over_time(rabbitmq_queue_messages[1m])",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -329,7 +356,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(orders_placed_total{instance=\"ordering:80\", job=\"wiredbrain_services\"}[5m]) * ignoring(instance) (rate(billing_wait_time_seconds_sum{instance=\"billing:8080\", job=\"wiredbrain_services\"}[5m]) / rate(billing_wait_time_seconds_count{instance=\"billing:8080\", job=\"wiredbrain_services\"}[5m]))",
+          "expr": "rate(orders_placed_total[1m]) * ignoring(instance) (rate(billing_wait_time_seconds_sum[1m]) / rate(billing_wait_time_seconds_count[1m]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -342,6 +369,73 @@
       ],
       "title": "Queue Length (L)",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 12,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.1",
+      "targets": [
+        {
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "billing_num_processors",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Billing Services Available (c)",
+      "type": "stat"
     }
   ],
   "preload": false,
@@ -358,6 +452,6 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "WiredBrain Queueing Theory Demo",
-  "uid": "wiredbrain-littles-law",
+  "uid": "queueing_theory",
   "version": 8
 }
