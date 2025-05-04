@@ -1,9 +1,9 @@
 ﻿﻿using MassTransit;
-using Microsoft.OpenApi.Models;
 using Prometheus;
 using WiredBrain.Messages;
 using WiredBrain.Ordering;
 using WiredBrain.Ordering.Services;
+using WiredBrain.Ordering.Simulation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +57,7 @@ async Task PublishOrdersAsync()
     try
     {
         Console.WriteLine("Ordering Service Started. Publishing orders...");
+        QueueSimulator queueSimulator = new();
         
         // Publish orders at the configured rate
         while (true)
@@ -66,21 +67,15 @@ async Task PublishOrdersAsync()
 
             // Get the current configuration and randomized delays
             var config = configService.GetConfiguration();
-            var randomizedProcessingDelay = configService.GetRandomizedBillingProcessingDelay();
-            var order = GenerateRandomOrder(randomizedProcessingDelay);
+            var randomizedProcessingDelay = queueSimulator.GenerateRandomTime(config.BillingProcessingDelayMs, config.CoefficientOfServiceVariation);
+            var order = GenerateRandomOrder((int)randomizedProcessingDelay);
             
             await busControl.Publish<OrderPlaced>(order);
             
             // Track the order placement in metrics
             OrderingMetrics.TrackOrderPlaced();
-            
-            // Calculate expected wait time using Kingman's formula
-            var expectedWaitTime = configService.CalculateExpectedWaitTime();
-            var expectedWaitTimeStr = double.IsPositiveInfinity(expectedWaitTime) ? "∞" : $"{expectedWaitTime:F2}ms";
-            
-            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} " +
-                             $"(Base Delay: {config.OrderArrivalDelayMs}ms, Processing: {randomizedProcessingDelay}ms, " +
-                             $"Expected Wait: {expectedWaitTimeStr})");
+
+            Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
 
             // Stop the stopwatch and calculate the elapsed time
             stopwatch.Stop();
@@ -88,7 +83,7 @@ async Task PublishOrdersAsync()
 
             // Calculate the remaining time to wait before publishing the next order
             // Use the randomized arrival delay based on the coefficient of arrival variation
-            var randomizedArrivalDelay = configService.GetRandomizedOrderArrivalDelay();
+            var randomizedArrivalDelay = queueSimulator.GenerateRandomTime(config.OrderArrivalDelayMs, config.CoefficientOfArrivalVariation);
             var waitTime = randomizedArrivalDelay - elapsedTime;
             if (waitTime > 0)
             {
