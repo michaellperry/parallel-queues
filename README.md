@@ -89,18 +89,6 @@ Available scenarios:
    - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
    - Result: Continuously growing queues when c is reduced
 
-4. **servicetime**: Demonstrates the impact of service time on queue length
-   - OrderArrivalRateMs: 300 (λ = 3.33 orders/sec)
-   - BillingProcessingDelayMs: 200 (μ = 5 orders/sec per service)
-   - Default BillingServiceCount: 4 (cμ = 20 orders/sec)
-   - Result: Shows how changing τ affects queue length
-
-5. **bottleneck**: Demonstrates bottleneck identification
-   - OrderArrivalRateMs: 300 (λ = 3.33 orders/sec)
-   - BillingProcessingDelayMs: 400 (μ = 2.5 orders/sec per service)
-   - Default BillingServiceCount: 4 (cμ = 10 orders/sec)
-   - Result: Shows how the slowest service becomes the bottleneck
-
 #### Custom Configuration
 
 You can also set custom values by making a POST request to `/api/Configuration` with a JSON body:

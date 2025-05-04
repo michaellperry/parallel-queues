@@ -88,36 +88,24 @@ public class ConfigurationController : ControllerBase
         {
             case "underload":
                 // Scenario A: Underload (λ < cμ)
-                config.OrderArrivalDelayMs = 2000; // λ = 0.5 orders/sec
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
+                config.OrderArrivalDelayMs = 2000 / config.BillingServiceCount; // λ = 0.5 orders/sec per service
+                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
                 break;
                 
             case "nearcapacity":
                 // Scenario B: Near Capacity (λ ≈ cμ)
-                config.OrderArrivalDelayMs = 350; // λ = 2.86 orders/sec
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
+                config.OrderArrivalDelayMs = 250 / config.BillingServiceCount; // λ = 4 orders/sec per service
+                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
                 break;
                 
             case "overload":
                 // Scenario C: Overload (λ > cμ)
-                config.OrderArrivalDelayMs = 250; // λ = 4 orders/sec
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
-                break;
-                
-            case "servicetime":
-                // Scenario D: Impact of Service Time
-                config.OrderArrivalDelayMs = 300; // λ = 3.33 orders/sec
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec per service
-                break;
-                
-            case "bottleneck":
-                // Scenario E: Bottleneck Identification
-                config.OrderArrivalDelayMs = 300; // λ = 3.33 orders/sec
-                config.BillingProcessingDelayMs = 400; // μ = 2.5 orders/sec per service
+                config.OrderArrivalDelayMs = 175 / config.BillingServiceCount; // λ = 5.7 orders/sec per service
+                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
                 break;
                 
             default:
-                return BadRequest($"Unknown scenario: {scenarioName}. Available scenarios: underload, nearcapacity, overload, servicetime, bottleneck");
+                return BadRequest($"Unknown scenario: {scenarioName}. Available scenarios: underload, nearcapacity, overload");
         }
         
         _configService.UpdateConfiguration(config);

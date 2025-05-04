@@ -61,6 +61,9 @@ async Task PublishOrdersAsync()
         // Publish orders at the configured rate
         while (true)
         {
+            // Start a stopwatch to measure the time taken for order placement
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             // Get the current configuration
             var config = configService.GetConfiguration();
             var order = GenerateRandomOrder(config.BillingProcessingDelayMs);
@@ -71,8 +74,17 @@ async Task PublishOrdersAsync()
             OrderingMetrics.TrackOrderPlaced();
             
             Console.WriteLine($"Published order: {order.OrderId} for {order.CustomerName} - ${order.Amount} (Delay: {config.OrderArrivalDelayMs}ms)");
-            
-            await Task.Delay(config.OrderArrivalDelayMs * config.BillingServiceCount);
+
+            // Stop the stopwatch and calculate the elapsed time
+            stopwatch.Stop();
+            var elapsedTime = stopwatch.ElapsedMilliseconds;
+
+            // Calculate the remaining time to wait before publishing the next order
+            var waitTime = config.OrderArrivalDelayMs - elapsedTime;
+            if (waitTime > 0)
+            {
+                await Task.Delay((int)waitTime);
+            }
         }
     }
     catch (Exception ex)
