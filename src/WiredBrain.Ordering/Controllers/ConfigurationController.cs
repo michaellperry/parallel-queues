@@ -88,20 +88,20 @@ public class ConfigurationController : ControllerBase
         {
             case "underload":
                 // Scenario A: Underload (λ < cμ)
-                config.OrderArrivalDelayMs = 2000 / config.BillingServiceCount; // λ = 0.5 orders/sec per service
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
+                config.OrderArrivalDelayMs = 4800 / config.BillingServiceCount; // λ = 4.8 orders/sec per service
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
                 break;
                 
             case "nearcapacity":
                 // Scenario B: Near Capacity (λ ≈ cμ)
-                config.OrderArrivalDelayMs = 250 / config.BillingServiceCount; // λ = 4 orders/sec per service
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
+                config.OrderArrivalDelayMs = 625 / config.BillingServiceCount; // λ = 1.6 orders/sec per service
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
                 break;
                 
             case "overload":
                 // Scenario C: Overload (λ > cμ)
-                config.OrderArrivalDelayMs = 175 / config.BillingServiceCount; // λ = 5.7 orders/sec per service
-                config.BillingProcessingDelayMs = 200; // μ = 5 orders/sec for each service
+                config.OrderArrivalDelayMs = 450 / config.BillingServiceCount; // λ = 2.2 orders/sec per service
+                config.BillingProcessingDelayMs = 500; // μ = 2 orders/sec for each service
                 break;
                 
             default:
