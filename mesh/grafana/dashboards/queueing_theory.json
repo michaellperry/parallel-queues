@@ -128,7 +128,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "billing_num_processors * ignoring(instance, job) avg(rate(billing_processing_time_seconds_count[$__rate_interval])) / avg(rate(billing_processing_time_seconds_sum[$__rate_interval]))",
+          "expr": "sum(billing_num_processors) * avg(rate(billing_processing_time_seconds_count[$__rate_interval])) / avg(rate(billing_processing_time_seconds_sum[$__rate_interval]))",
           "hide": false,
           "instant": false,
           "legendFormat": "Maximum Service Rate (cμ)",
@@ -361,7 +361,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(orders_placed_total[$__rate_interval]) * ignoring(instance) (rate(billing_wait_time_seconds_sum[$__rate_interval]) / rate(billing_wait_time_seconds_count[$__rate_interval]))",
+          "expr": "rate(orders_placed_total[$__rate_interval]) * ignoring(instance, job) (sum(rate(billing_wait_time_seconds_sum[$__rate_interval])) by (job) / sum(rate(billing_wait_time_seconds_count[$__rate_interval])) by (job))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
