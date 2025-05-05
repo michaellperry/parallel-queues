@@ -35,10 +35,17 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Billing/Dockerfile
-    environment:
-      - BILLING_PROCESSING_DELAY_MS=200
-    ports:
-      - "8082:80"  # Expose port for metrics scraping
+    depends_on:
+      - rabbitmq
+    deploy:
+      resources:
+        limits:
+          cpus: '2'  # Constrain to 2 CPUs
+
+  billing-backup:
+    build:
+      context: ../src
+      dockerfile: WiredBrain.Billing/Dockerfile
     depends_on:
       - rabbitmq
     deploy:

@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 1,
   "links": [],
   "panels": [
     {
@@ -430,7 +430,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "billing_num_processors",
+          "expr": "sum(billing_num_processors)",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -529,5 +529,5 @@
   "timezone": "browser",
   "title": "WiredBrain Queueing Theory Demo",
   "uid": "queueing_theory",
-  "version": 8
+  "version": 1
 }
