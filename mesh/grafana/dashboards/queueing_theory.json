@@ -501,8 +501,9 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "rate(orders_placed_total[$__rate_interval]) * ignoring(instance, job) avg(rate(billing_processing_time_seconds_sum[$__rate_interval])) /\n(billing_num_processors * ignoring(instance, job) avg(rate(billing_processing_time_seconds_count[$__rate_interval])))",
+          "expr": "rate(orders_placed_total[$__rate_interval]) * ignoring(instance, job) avg(rate(billing_processing_time_seconds_sum[$__rate_interval])) /\n(sum(billing_num_processors) * avg(rate(billing_processing_time_seconds_count[$__rate_interval])))",
           "fullMetaSearch": false,
+          "hide": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
           "range": true,
