@@ -238,7 +238,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "rate(billing_processing_time_seconds_sum[$__rate_interval]) / rate(billing_processing_time_seconds_count[$__rate_interval])",
+          "expr": "sum(rate(billing_processing_time_seconds_sum[$__rate_interval])) / sum(rate(billing_processing_time_seconds_count[$__rate_interval]))",
           "legendFormat": "Service Time (τ)",
           "range": true,
           "refId": "A"
@@ -249,7 +249,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "editorMode": "code",
-          "expr": "rate(billing_wait_time_seconds_sum[$__rate_interval]) / rate(billing_wait_time_seconds_count[$__rate_interval])",
+          "expr": "sum(rate(billing_wait_time_seconds_sum[$__rate_interval])) / sum(rate(billing_wait_time_seconds_count[$__rate_interval]))",
           "hide": false,
           "instant": false,
           "legendFormat": "Wait Time (W)",
