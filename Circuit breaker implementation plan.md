@@ -1,42 +1,6 @@
-To get true back-pressure all the way back to your message broker, you need to stop pulling messages off the queue whenever your downstream circuit is open. That way, RabbitMQ will simply stop delivering new work, and the unprocessed messages will pile up in the queue instead of being drained (and Acked) by your billing service.
+# Circuit Breaker Within a Consumer
 
-Here’s the recipe in MassTransit:
-
----
-
-## 1) Capture your receive-endpoint handle
-
-When you configure your bus, keep a reference to the `IReceiveEndpointHandle` for your billing queue:
-
-```csharp
-// In your bus-registration code:
-
-IReceiveEndpointHandle billingEndpointHandle = null;
-
-var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
-{
-    var host = cfg.Host("rabbitmq://localhost", h => { /* credentials… */ });
-
-    billingEndpointHandle = cfg.ReceiveEndpoint("billing-orders", e =>
-    {
-        // set your concurrency/prefetch low enough so each
-        // pending call truly blocks the pump
-        e.PrefetchCount = 1;
-        e.ConcurrentMessageLimit = 1;
-
-        e.Consumer<OrderConsumer>();
-    });
-});
-
-await bus.StartAsync();
-```
-
-> **Why low prefetch/concurrency?**
-> By only allowing one in-flight message at a time, you guarantee that if processing blocks (or you stop the pump), no further deliveries occur.
-
----
-
-## 2) Wire up a Polly circuit-breaker inside your consumer (or as a global filter)
+Wire up a Polly circuit-breaker inside your consumer
 
 ```csharp
 // a simple async circuit-breaker policy
@@ -69,46 +33,18 @@ public class OrderConsumer : IConsumer<Order>
 }
 ```
 
----
-
-## 3) Pause & resume the receive pump on circuit events
-
-In your `onBreak` and `onReset` handlers, stop or start the endpoint:
-
-```csharp
-void OnCircuitOpen()
-{
-    Log.LogWarning("Circuit open – pausing message pump");
-    // fire-and-forget; you could await, but don't block your breaker callback
-    billingEndpointHandle.StopAsync();
-}
-
-void OnCircuitClosed()
-{
-    Log.LogInformation("Circuit closed – resuming message pump");
-    billingEndpointHandle.StartAsync();
-}
-```
-
 What happens now:
 
-1. **Normal operation**: messages are pulled (prefetch=1), processed, then Acked.
+1. **Normal operation**: messages are pulled, processed, then Acked.
 2. **Downstream flaps**: after N failures, Polly trips → `OnCircuitOpen` fires.
-3. **Pump stops**: `StopAsync` tells MassTransit to stop calling BasicDeliver on RabbitMQ. No more messages are Acked.
-4. **Queue fills**: unprocessed orders back up in RabbitMQ.
-5. **Circuit reset**: once the downstream recovers (or half-open succeeds), Polly calls `OnCircuitClosed`.
-6. **Pump resumes**: `StartAsync` re-enables delivery, and processing picks back up.
+3. **Subsequent requests fail**: Polly throws `BrokenCircuitException` on the next call.
+4. **MassTransit Nacks**: the message is Nacked (or retried) and sent to the error queue.
+5. **Circuit reset**: after the `durationOfBreak`, Polly calls `OnCircuitClosed`.
+6. **Half-open**: Polly calls `OnHalfOpen` to test the downstream.
+7. **Circuit reset**: once the downstream recovers (or half-open succeeds), Polly calls `OnCircuitClosed`.
+8. **Normal operation**: messages are pulled, processed, then Acked.
+9. **Shovel error queue into the main queue**: once the circuit is closed, you can shovel the error queue back into the main queue to re-process the requests.
 
----
+## Next Steps
 
-## 4) Tuning & caveats
-
-* **Graceful shutdown**: ensure you drain any in-flight messages before stopping the bus (MassTransit does this by default on shutdown).
-* **Multiple consumers**: if you have multiple instances, each will pause independently, but the overall effect is the same—messages queue up across the cluster.
-* **Metrics & visibility**: log those circuit events (open/half-open/close) so you can see exactly when the pump was paused.
-
----
-
-### Why this is better than “just throwing exceptions”
-
-If you simply let the breaker throw `BrokenCircuitException` inside the consumer, MassTransit will Nack (or move to *error* after retries), and you’ll lose messages or clog your retry/Error queues. By pausing the receive endpoint itself, you give your downstream time to heal and avoid message loss or unintended retries.
+The circuit breaker prevents traffic from overwhelming the downstream service. However, on its own, it doesn't stop the incoming queue from being drained. To prevent the consumer from pulling more messages, you can use a **Kill Switch**. This is a MassTransit-specific feature that stops the consumer from pulling messages when the downstream service is unhealthy.
