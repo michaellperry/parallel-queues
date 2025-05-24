@@ -35,6 +35,8 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Billing/Dockerfile
+    ports:
+      - "8080:80"  # Expose port for API access
     depends_on:
       - rabbitmq
     deploy:
@@ -69,7 +71,7 @@ services:
       context: ../src
       dockerfile: Simulated.Payments/Dockerfile
     ports:
-      - "8080:80"  # Expose port for API access
+      - "8082:80"  # Expose port for API access
     depends_on:
       - rabbitmq
 

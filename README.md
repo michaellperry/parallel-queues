@@ -33,7 +33,7 @@ Similarly, you can view the logs for the payment service:
 docker compose logs -f simulated-payments
 ```
 
-Access the billing service's API at `http://localhost:8080/swagger`. Use this to request the current total amount charged. Then access the simulated payment service's API at `http://localhost:8081/swagger` to see the total amount paid. While the system is running, these two totals will be updated in real-time. Stop the ordering service in order to pause the system and let it come to rest. Then you can verify that the totals match.
+Access the billing service's API at `http://localhost:8080/swagger`. Use this to request the current total amount charged. Then access the simulated payment service's API at `http://localhost:8082/swagger` to see the total amount paid. While the system is running, these two totals will be updated in real-time. Stop the ordering service in order to pause the system and let it come to rest. Then you can verify that the totals match.
 
 ### Thrashing Under Load
 
