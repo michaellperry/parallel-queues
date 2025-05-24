@@ -1,6 +1,7 @@
 using MassTransit;
 using Prometheus;
 using WiredBrain.Billing;
+using WiredBrain.Billing.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +14,7 @@ builder.Services.AddMassTransit(x =>
             
         cfg.ReceiveEndpoint("billing-service", e =>
         {
-            e.Consumer<OrderPlacedConsumer>();
+            e.Consumer<OrderPlacedConsumer>(context);
             
             // Use the default MassTransit concurrency settings based on CPU count
             int concurrentMessages = e.ConcurrentMessageLimit ?? e.PrefetchCount;
@@ -23,6 +24,17 @@ builder.Services.AddMassTransit(x =>
         });
     });
 });
+
+// Add HTTP client for payment service
+builder.Services.AddHttpClient("PaymentService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["PaymentService:BaseUrl"] ?? "http://simulated-payments:80/");
+    client.Timeout = TimeSpan.FromSeconds(5); // 5-second timeout
+});
+
+// Register services
+builder.Services.AddSingleton<BillingRepository>();
+builder.Services.AddScoped<PaymentServiceClient>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

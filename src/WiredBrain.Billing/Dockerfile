@@ -18,6 +18,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Create directory for persistent storage
+RUN mkdir -p /data
+VOLUME /data
+
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:80
 

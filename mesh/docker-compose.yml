@@ -39,6 +39,9 @@ services:
       - "8080:80"  # Expose port for API access
     depends_on:
       - rabbitmq
+      - simulated-payments
+    volumes:
+      - billing-data:/data
     deploy:
       resources:
         limits:
@@ -50,6 +53,9 @@ services:
       dockerfile: WiredBrain.Billing/Dockerfile
     depends_on:
       - rabbitmq
+      - simulated-payments
+    volumes:
+      - billing-data:/data
     deploy:
       resources:
         limits:
@@ -95,3 +101,6 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     depends_on:
       - prometheus
+
+volumes:
+  billing-data:
