@@ -69,7 +69,7 @@ services:
       context: ../src
       dockerfile: Simulated.Payments/Dockerfile
     ports:
-      - "8082:80"  # Expose port for API access
+      - "8080:80"  # Expose port for API access
     depends_on:
       - rabbitmq
 
