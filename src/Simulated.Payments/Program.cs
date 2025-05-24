@@ -1,4 +1,4 @@
-using WiredBrain.Payment.Services;
+using Simulated.Payments.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

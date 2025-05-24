@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using WiredBrain.Payment.Models;
+using Simulated.Payments.Models;
 
-namespace WiredBrain.Payment.Services;
+namespace Simulated.Payments.Services;
 
 public class PaymentRepository
 {

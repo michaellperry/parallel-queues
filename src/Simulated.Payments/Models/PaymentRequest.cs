@@ -1,4 +1,4 @@
-namespace WiredBrain.Payment.Models;
+namespace Simulated.Payments.Models;
 
 public class PaymentRequest
 {

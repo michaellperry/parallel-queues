@@ -64,6 +64,15 @@ services:
     depends_on:
       - rabbitmq
 
+  simulated-payments:
+    build:
+      context: ../src
+      dockerfile: Simulated.Payments/Dockerfile
+    ports:
+      - "8082:80"  # Expose port for API access
+    depends_on:
+      - rabbitmq
+
   prometheus:
     image: prom/prometheus
     ports:

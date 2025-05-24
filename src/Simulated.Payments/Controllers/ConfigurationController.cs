@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using WiredBrain.Payment.Models;
-using WiredBrain.Payment.Services;
+using Simulated.Payments.Models;
+using Simulated.Payments.Services;
 
-namespace WiredBrain.Payment.Controllers;
+namespace Simulated.Payments.Controllers;
 
 [ApiController]
 [Route("api/payment/configuration")]
