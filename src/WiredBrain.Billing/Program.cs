@@ -47,15 +47,16 @@ builder.Services.AddHttpClient("PaymentService", (serviceProvider, client) =>
     var logger = serviceProvider.GetRequiredService<ILogger<PaymentServiceClient>>();
     var config = serviceProvider.GetRequiredService<IOptions<ResilienceConfig>>().Value;
     
+    // Use the new DecorrelatedJitterBackoffV2 formula for smoother distribution of retry intervals
+    var delay = Polly.Contrib.WaitAndRetry.Backoff.DecorrelatedJitterBackoffV2(
+        medianFirstRetryDelay: TimeSpan.FromSeconds(config.InitialBackoffSeconds),
+        retryCount: config.MaxRetryAttempts);
+    
     return HttpPolicyExtensions
         .HandleTransientHttpError() // HttpRequestException, 5XX and 408 status codes
         .Or<TimeoutRejectedException>() // Handle timeout rejections
         .WaitAndRetryAsync(
-            config.MaxRetryAttempts,
-            retryAttempt => TimeSpan.FromSeconds(
-                Math.Pow(config.BackoffMultiplier, retryAttempt - 1) * config.InitialBackoffSeconds
-                * (1 + config.JitterFactor * (new Random().NextDouble() - 0.5)) // Add jitter
-            ),
+            delay,
             onRetry: (outcome, timespan, retryAttempt, context) =>
             {
                 logger.LogWarning(
