@@ -21,9 +21,34 @@ public static class RetryPolicy
                 delay,
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
+                    // Track retry metrics
+                    ResilienceMetrics.TrackRetryAttempt();
+                    ResilienceMetrics.TrackRetryDelay(timespan);
+                    
+                    // Track the failure that triggered the retry
+                    if (outcome.Exception is HttpRequestException httpEx)
+                    {
+                        ResilienceMetrics.TrackRequestFailure(httpEx, httpEx.StatusCode);
+                    }
+                    else if (outcome.Exception is TimeoutRejectedException)
+                    {
+                        ResilienceMetrics.TrackTimeout();
+                        ResilienceMetrics.TrackRequestFailure(outcome.Exception);
+                    }
+                    else if (outcome.Exception != null)
+                    {
+                        ResilienceMetrics.TrackRequestFailure(outcome.Exception);
+                    }
+                    else if (outcome.Result != null)
+                    {
+                        ResilienceMetrics.TrackRequestFailure(
+                            statusCode: outcome.Result.StatusCode);
+                    }
+                    
                     logger.LogWarning(
-                        "Retry {RetryAttempt} after {TimespanSeconds}s delay due to {Message}",
+                        "Retry {RetryAttempt}/{MaxRetryAttempts} after {TimespanSeconds}s delay due to {Message}",
                         retryAttempt,
+                        config.MaxRetryAttempts,
                         timespan.TotalSeconds,
                         outcome.Exception?.Message ?? outcome.Result?.ReasonPhrase);
                 }

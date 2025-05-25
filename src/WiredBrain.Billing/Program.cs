@@ -1,8 +1,10 @@
 using MassTransit;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Polly;
 using Prometheus;
 using WiredBrain.Billing;
+using WiredBrain.Billing.HealthChecks;
 using WiredBrain.Billing.Models;
 using WiredBrain.Billing.Policies;
 using WiredBrain.Billing.Services;
@@ -52,6 +54,13 @@ builder.Services.AddHttpClient("PaymentService", (serviceProvider, client) =>
 builder.Services.AddSingleton<BillingRepository>();
 builder.Services.AddSingleton<PaymentServiceClient>();
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<CircuitBreakerHealthCheck>(
+        "payment-service-circuit-breaker",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "payment", "resilience" });
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -77,6 +86,28 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Configure health check endpoint
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/circuit-breaker", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = healthCheck => healthCheck.Name == "payment-service-circuit-breaker",
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        
+        var healthCheck = report.Entries.First();
+        var status = healthCheck.Value.Status.ToString();
+        var description = healthCheck.Value.Description ?? "No description available";
+        
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status,
+            description,
+            circuitState = WiredBrain.Billing.Policies.CircuitBreakerPolicy.CircuitState.ToString()
+        });
+    }
+});
 
 app.UseMetricServer(); // Exposes /metrics endpoint
 app.UseHttpMetrics();  // Collects HTTP request metrics
