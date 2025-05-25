@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.Extensions.Options;
 using Polly.Timeout;
 using WiredBrain.Billing.Models;
@@ -24,13 +23,13 @@ public class PaymentServiceClient
             "PaymentServiceClient configured with timeout: {TimeoutSeconds}s, " +
             "max retry attempts: {MaxRetryAttempts}, " +
             "initial backoff: {InitialBackoffSeconds}s, " +
-            "backoff multiplier: {BackoffMultiplier}, " +
-            "jitter factor: {JitterFactor}",
+            "circuit breaker exceptions allowed: {ExceptionsAllowedBeforeBreaking}, " +
+            "circuit breaker break duration: {DurationOfBreakSeconds}s",
             _resilienceConfig.TimeoutSeconds,
             _resilienceConfig.MaxRetryAttempts,
             _resilienceConfig.InitialBackoffSeconds,
-            _resilienceConfig.BackoffMultiplier,
-            _resilienceConfig.JitterFactor);
+            _resilienceConfig.ExceptionsAllowedBeforeBreaking,
+            _resilienceConfig.DurationOfBreakSeconds);
     }
 
     public async Task<PaymentResponse> ProcessPaymentAsync(PaymentRequest request)
