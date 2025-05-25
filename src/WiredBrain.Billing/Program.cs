@@ -20,6 +20,15 @@ builder.Services.AddMassTransit(x =>
             
         cfg.ReceiveEndpoint("billing-service", e =>
         {
+            // Add kill switch middleware with specified parameters
+            e.UseKillSwitch(options =>
+            {
+                options.SetActivationThreshold(10);      // Track at least 10 calls
+                options.SetTripThreshold(0.15);          // 15% failure rate
+                options.SetRestartTimeout(TimeSpan.FromSeconds(30));
+                options.SetTrackingPeriod(TimeSpan.FromMinutes(1));
+            });
+            
             e.Consumer<OrderPlacedConsumer>(context);
             
             // Use the default MassTransit concurrency settings based on CPU count
@@ -103,7 +112,7 @@ app.MapHealthChecks("/health/circuit-breaker", new Microsoft.AspNetCore.Diagnost
         {
             status,
             description,
-            circuitState = WiredBrain.Billing.Policies.CircuitBreakerPolicy.CircuitState.ToString()
+            circuitState = CircuitBreakerPolicy.CircuitState.ToString()
         });
     }
 });
