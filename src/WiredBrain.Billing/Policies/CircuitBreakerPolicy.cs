@@ -1,6 +1,5 @@
 using Polly;
 using Polly.CircuitBreaker;
-using Polly.Extensions.Http;
 using Polly.Timeout;
 using WiredBrain.Billing.Models;
 

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using WiredBrain.Billing.Services;
 
 namespace WiredBrain.Billing.Controllers;

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Polly.CircuitBreaker;
-using WiredBrain.Billing.Policies;
 
 namespace WiredBrain.Billing.HealthChecks;
 

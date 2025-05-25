@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using Polly.CircuitBreaker;
 using Polly.Timeout;
 using WiredBrain.Billing.Models;
-using WiredBrain.Billing.Policies;
 
 namespace WiredBrain.Billing.Services;
 

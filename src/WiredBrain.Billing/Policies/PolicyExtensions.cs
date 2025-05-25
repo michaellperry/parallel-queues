@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Registry;
 using WiredBrain.Billing.Models;
 
 namespace WiredBrain.Billing.Policies;
