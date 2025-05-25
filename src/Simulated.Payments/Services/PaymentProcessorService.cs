@@ -47,8 +47,15 @@ public class PaymentProcessorService
         
         var stopwatch = Stopwatch.StartNew();
         
-        // Simulate payment processing with configurable delay
-        await Task.Delay(config.ProcessingDelayMs);
+        // Simulate payment processing with configurable delay and random jitter
+        var random = new Random();
+        var jitterMs = random.Next(-200, 201); // Random jitter between -200ms and +200ms
+        var delayMs = Math.Max(1, config.ProcessingDelayMs + jitterMs); // Ensure delay is at least 1ms
+        
+        _logger.LogDebug("Payment processing delay: {BaseDelay}ms + {Jitter}ms jitter = {TotalDelay}ms", 
+            config.ProcessingDelayMs, jitterMs, delayMs);
+            
+        await Task.Delay(delayMs);
         
         stopwatch.Stop();
         
