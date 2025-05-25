@@ -29,13 +29,6 @@ public class OrderPlacedConsumer : IConsumer<OrderPlaced>
 
         Console.WriteLine($"Processing payment for order: {order.OrderId} for {order.CustomerName} - ${order.Amount}");
         
-        // Use the delay directly from the message
-        // The Ordering service has already applied the randomization based on the coefficient of service variation
-        Console.WriteLine($"Processing order with delay: {order.BillingProcessingDelayMs}ms (cs: {order.CoefficientOfServiceVariation})");
-        
-        // Use the delay from the message for billing processing
-        await Task.Delay(order.BillingProcessingDelayMs);
-        
         // Create payment request
         var paymentRequest = new PaymentRequest
         {
@@ -47,13 +40,18 @@ public class OrderPlacedConsumer : IConsumer<OrderPlaced>
 
         try
         {
+            // Measure payment processing time
+            var paymentStopwatch = Stopwatch.StartNew();
+            
             // Process payment through the payment service
             var paymentResponse = await _paymentServiceClient.ProcessPaymentAsync(paymentRequest);
+            
+            paymentStopwatch.Stop();
             
             // Record the charge in the repository
             _billingRepository.AddCharge(order.Amount);
             
-            Console.WriteLine($"Payment processed successfully for order: {order.OrderId}, Payment ID: {paymentResponse.PaymentId}");
+            Console.WriteLine($"Payment processed successfully for order: {order.OrderId}, Payment ID: {paymentResponse.PaymentId} in {paymentStopwatch.ElapsedMilliseconds}ms");
         }
         catch (Exception ex)
         {
