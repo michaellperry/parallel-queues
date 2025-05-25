@@ -1,6 +1,11 @@
 using MassTransit;
+using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Timeout;
 using Prometheus;
 using WiredBrain.Billing;
+using WiredBrain.Billing.Models;
 using WiredBrain.Billing.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,11 +30,45 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-// Add HTTP client for payment service
-builder.Services.AddHttpClient("PaymentService", client =>
+// Configure resilience options
+builder.Services.Configure<ResilienceConfig>(
+    builder.Configuration.GetSection("PaymentService:Resilience"));
+
+// Add HTTP client for payment service with Polly policies
+builder.Services.AddHttpClient("PaymentService", (serviceProvider, client) =>
 {
+    var config = serviceProvider.GetRequiredService<IOptions<ResilienceConfig>>().Value;
     client.BaseAddress = new Uri(builder.Configuration["PaymentService:BaseUrl"] ?? "http://simulated-payments:80/");
-    client.Timeout = TimeSpan.FromSeconds(5); // 5-second timeout
+    client.Timeout = config.Timeout;
+})
+.AddPolicyHandler((serviceProvider, _) =>
+{
+    var logger = serviceProvider.GetRequiredService<ILogger<PaymentServiceClient>>();
+    var config = serviceProvider.GetRequiredService<IOptions<ResilienceConfig>>().Value;
+    
+    return HttpPolicyExtensions
+        .HandleTransientHttpError() // HttpRequestException, 5XX and 408 status codes
+        .Or<TimeoutRejectedException>() // Handle timeout rejections
+        .WaitAndRetryAsync(
+            config.MaxRetryAttempts,
+            retryAttempt => TimeSpan.FromSeconds(
+                Math.Pow(config.BackoffMultiplier, retryAttempt - 1) * config.InitialBackoffSeconds
+                * (1 + config.JitterFactor * (new Random().NextDouble() - 0.5)) // Add jitter
+            ),
+            onRetry: (outcome, timespan, retryAttempt, context) =>
+            {
+                logger.LogWarning(
+                    "Retry {RetryAttempt} after {TimespanSeconds}s delay due to {Message}",
+                    retryAttempt,
+                    timespan.TotalSeconds,
+                    outcome.Exception?.Message ?? outcome.Result?.ReasonPhrase);
+            }
+        );
+})
+.AddPolicyHandler((serviceProvider, _) =>
+{
+    var config = serviceProvider.GetRequiredService<IOptions<ResilienceConfig>>().Value;
+    return Policy.TimeoutAsync<HttpResponseMessage>(config.Timeout);
 });
 
 // Register services
