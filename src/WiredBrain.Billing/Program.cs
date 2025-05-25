@@ -36,18 +36,18 @@ builder.Services.Configure<ResilienceConfig>(
 // Add HTTP client for payment service with Polly policies
 builder.Services.AddHttpClient("PaymentService", (serviceProvider, client) =>
 {
-    var config = serviceProvider.GetRequiredService<IOptions<ResilienceConfig>>().Value;
     client.BaseAddress = new Uri(builder.Configuration["PaymentService:BaseUrl"] ?? "http://simulated-payments:80/");
-    client.Timeout = config.Timeout;
 })
-.AddRetryPolicy()
-.AddTimeoutPolicy()
-.AddCircuitBreakerPolicy()
+.AddPolicies(
+    // RetryPolicy.Factory,
+    CircuitBreakerPolicy.Factory,
+    TimeoutPolicy.Factory
+)
 ;
 
 // Register services
 builder.Services.AddSingleton<BillingRepository>();
-builder.Services.AddScoped<PaymentServiceClient>();
+builder.Services.AddSingleton<PaymentServiceClient>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
