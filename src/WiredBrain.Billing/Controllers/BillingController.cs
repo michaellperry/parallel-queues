@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using WiredBrain.Billing.Services;
 
 namespace WiredBrain.Billing.Controllers;
@@ -17,9 +18,10 @@ public class BillingController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
-        return Ok("Billing Service is running.");
+        var circuitState = Policies.CircuitBreakerPolicy.CircuitState;
+        return Ok($"Circuit breaker is {circuitState}.");
     }
 
     [HttpGet("total")]
