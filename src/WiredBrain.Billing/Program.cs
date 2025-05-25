@@ -1,5 +1,6 @@
 using MassTransit;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Polly;
 using Prometheus;
 using WiredBrain.Billing;
@@ -20,13 +21,14 @@ builder.Services.AddMassTransit(x =>
             
         cfg.ReceiveEndpoint("billing-service", e =>
         {
-            // Add kill switch middleware with specified parameters
+            // Add kill switch middleware with parameters from configuration
+            var resilienceConfig = context.GetRequiredService<IOptions<ResilienceConfig>>().Value;
             e.UseKillSwitch(options =>
             {
-                options.SetActivationThreshold(10);      // Track at least 10 calls
-                options.SetTripThreshold(0.15);          // 15% failure rate
-                options.SetRestartTimeout(TimeSpan.FromSeconds(30));
-                options.SetTrackingPeriod(TimeSpan.FromMinutes(1));
+                options.SetActivationThreshold(resilienceConfig.KillSwitchActivationThreshold);
+                options.SetTripThreshold(resilienceConfig.KillSwitchTripThreshold);
+                options.SetRestartTimeout(resilienceConfig.KillSwitchRestartTimeout);
+                options.SetTrackingPeriod(resilienceConfig.KillSwitchTrackingPeriod);
             });
             
             e.Consumer<OrderPlacedConsumer>(context);
