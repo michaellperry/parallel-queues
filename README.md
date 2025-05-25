@@ -43,7 +43,7 @@ After a while, you will see that most of the traffic to the payment service is d
 
 ### Implementing the Circuit Breaker
 
-To resolve this, change the billing service to use the circuit breaker pattern. Uncomment the `UseCircuitBreaker` line in the `Program.cs` file of the billing service and rebuild the Docker images:
+To resolve this, change the billing service to use the circuit breaker pattern. Uncomment the `AddCircuitBreakerPolicy` line in the `Program.cs` file of the billing service and rebuild the Docker images:
 
 ```bash
 docker compose up --build -d
