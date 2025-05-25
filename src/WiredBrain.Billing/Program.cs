@@ -1,5 +1,6 @@
 using MassTransit;
 using Microsoft.Extensions.Options;
+using Polly;
 using Prometheus;
 using WiredBrain.Billing;
 using WiredBrain.Billing.Models;
@@ -33,17 +34,19 @@ builder.Services.AddMassTransit(x =>
 builder.Services.Configure<ResilienceConfig>(
     builder.Configuration.GetSection("PaymentService:Resilience"));
 
+// Register resilience policies
+builder.Services.AddSingleton<ResiliencePolicyRegistry>();
+
 // Add HTTP client for payment service with Polly policies
 builder.Services.AddHttpClient("PaymentService", (serviceProvider, client) =>
 {
     client.BaseAddress = new Uri(builder.Configuration["PaymentService:BaseUrl"] ?? "http://simulated-payments:80/");
 })
-.AddPolicies(
-    // RetryPolicy.Factory,
-    CircuitBreakerPolicy.Factory,
-    TimeoutPolicy.Factory
-)
-;
+.AddPolicyHandler((serviceProvider, _) =>
+{
+    var registry = serviceProvider.GetRequiredService<ResiliencePolicyRegistry>().Registry;
+    return registry.Get<IAsyncPolicy<HttpResponseMessage>>("PaymentService.PolicyWrap");
+});
 
 // Register services
 builder.Services.AddSingleton<BillingRepository>();

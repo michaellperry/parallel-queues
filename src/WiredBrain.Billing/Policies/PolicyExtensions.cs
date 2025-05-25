@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Polly;
+using Polly.Registry;
 using WiredBrain.Billing.Models;
 
 namespace WiredBrain.Billing.Policies;
@@ -24,5 +25,14 @@ public static class PolicyExtensions
                 var wrapper = Policy.WrapAsync(policies);
                 return wrapper;
             });
+    }
+    
+    public static IHttpClientBuilder AddPolicyHandlerFromRegistry(this IHttpClientBuilder builder, string policyName)
+    {
+        return builder.AddPolicyHandler((serviceProvider, _) =>
+        {
+            var registry = serviceProvider.GetRequiredService<ResiliencePolicyRegistry>().Registry;
+            return registry.Get<IAsyncPolicy<HttpResponseMessage>>(policyName);
+        });
     }
 }

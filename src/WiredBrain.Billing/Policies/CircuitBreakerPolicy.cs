@@ -1,4 +1,5 @@
 using Polly;
+using Polly.CircuitBreaker;
 using Polly.Extensions.Http;
 using Polly.Timeout;
 using WiredBrain.Billing.Models;
@@ -9,29 +10,26 @@ public static class CircuitBreakerPolicy
 {
     public static IAsyncPolicy<HttpResponseMessage> Factory(ILogger logger, ResilienceConfig config)
     {
-        logger.LogWarning("Configuring circuit breaker policy with {SamplingDuration} seconds, " +
+        logger.LogWarning("Configuring circuit breaker policy with " +
                           "{ExceptionsAllowedBeforeBreaking} exceptions allowed before breaking, " +
                           "{DurationOfBreak} seconds duration of break",
-            config.SamplingDuration.TotalSeconds,
             config.ExceptionsAllowedBeforeBreaking,
             config.DurationOfBreak.TotalSeconds);
-        return HttpPolicyExtensions
-            .HandleTransientHttpError()
+            
+        var policy = Policy
+            .Handle<HttpRequestException>()
             .Or<TimeoutRejectedException>()
             .Or<TaskCanceledException>()
-            .AdvancedCircuitBreakerAsync(
-                failureThreshold: 0.5, // 50% failure rate
-                samplingDuration: config.SamplingDuration,
-                minimumThroughput: config.ExceptionsAllowedBeforeBreaking,
+            .CircuitBreakerAsync(
+                exceptionsAllowedBeforeBreaking: config.ExceptionsAllowedBeforeBreaking,
                 durationOfBreak: config.DurationOfBreak,
-                onBreak: (result, duration) =>
+                onBreak: (exception, duration) =>
                 {
-                    var exception = result.Exception;
                     logger.LogWarning(
                         "Circuit breaker opened due to {ExceptionType}: {ExceptionMessage}. " +
                         "Will remain open for {DurationSeconds} seconds",
                         exception?.GetType().Name ?? "HttpError",
-                        exception?.Message ?? result.Result?.ReasonPhrase,
+                        exception?.Message,
                         duration.TotalSeconds);
                 },
                 onReset: () =>
@@ -42,5 +40,7 @@ public static class CircuitBreakerPolicy
                 {
                     logger.LogInformation("Circuit breaker half-open. Testing payment service availability");
                 });
+                
+        return policy.AsAsyncPolicy<HttpResponseMessage>();
     }
 }
