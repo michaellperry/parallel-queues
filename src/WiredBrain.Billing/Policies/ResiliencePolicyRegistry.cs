@@ -17,9 +17,9 @@ public class ResiliencePolicyRegistry
         _config = options.Value;
         
         // Register individual policies
-        RegisterTimeoutPolicy();
         RegisterRetryPolicy();
         // RegisterCircuitBreakerPolicy();
+        RegisterTimeoutPolicy();
         
         // Register policy wrap with correct ordering
         RegisterPolicyWrap();
@@ -48,13 +48,13 @@ public class ResiliencePolicyRegistry
     private void RegisterPolicyWrap()
     {
         // Create a combined policy wrap with the correct ordering:
-        // Circuit Breaker (outermost) -> Retry -> Timeout (innermost)
+        // Retry (outermost) -> Circuit Breaker -> Timeout (innermost)
         _registry.Add("PaymentService.PolicyWrap", Policy.WrapAsync(
-            //_registry.Get<IAsyncPolicy<HttpResponseMessage>>("PaymentService.CircuitBreaker"),
             _registry.Get<IAsyncPolicy<HttpResponseMessage>>("PaymentService.Retry"),
+            //_registry.Get<IAsyncPolicy<HttpResponseMessage>>("PaymentService.CircuitBreaker"),
             _registry.Get<IAsyncPolicy<HttpResponseMessage>>("PaymentService.Timeout")
         ));
         
-        _logger.LogInformation("Resilience policy wrap registered with Circuit Breaker -> Retry -> Timeout ordering");
+        _logger.LogInformation("Resilience policy wrap registered with Retry -> Circuit Breaker -> Timeout ordering");
     }
 }
