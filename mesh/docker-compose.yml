@@ -35,8 +35,13 @@ services:
     build:
       context: ../src
       dockerfile: WiredBrain.Billing/Dockerfile
+    ports:
+      - "8080:80"  # Expose port for API access
     depends_on:
       - rabbitmq
+      - simulated-payments
+    volumes:
+      - billing-data:/data
     deploy:
       resources:
         limits:
@@ -48,6 +53,9 @@ services:
       dockerfile: WiredBrain.Billing/Dockerfile
     depends_on:
       - rabbitmq
+      - simulated-payments
+    volumes:
+      - billing-data:/data
     deploy:
       resources:
         limits:
@@ -61,6 +69,15 @@ services:
       - SHIPPING_PROCESSING_DELAY_MS=300
     ports:
       - "8083:80"  # Expose port for metrics scraping
+    depends_on:
+      - rabbitmq
+
+  simulated-payments:
+    build:
+      context: ../src
+      dockerfile: Simulated.Payments/Dockerfile
+    ports:
+      - "8082:80"  # Expose port for API access
     depends_on:
       - rabbitmq
 
@@ -84,3 +101,6 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     depends_on:
       - prometheus
+
+volumes:
+  billing-data:

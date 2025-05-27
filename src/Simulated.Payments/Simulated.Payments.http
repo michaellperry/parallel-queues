@@ -1,0 +1,54 @@
+@host = http://localhost:5003
+
+### Get service status
+GET {{host}}/api/payment/total
+Accept: application/json
+
+### Process a payment
+POST {{host}}/api/payment/process
+Content-Type: application/json
+
+{
+  "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "amount": 123.45,
+  "customerName": "John Doe",
+  "orderDate": "2025-05-24T12:00:00Z"
+}
+
+### Process the same payment again (idempotency test)
+POST {{host}}/api/payment/process
+Content-Type: application/json
+
+{
+  "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "amount": 123.45,
+  "customerName": "John Doe",
+  "orderDate": "2025-05-24T12:00:00Z"
+}
+
+### Process another payment
+POST {{host}}/api/payment/process
+Content-Type: application/json
+
+{
+  "orderId": "4fa85f64-5717-4562-b3fc-2c963f66afa7",
+  "amount": 67.89,
+  "customerName": "Jane Smith",
+  "orderDate": "2025-05-24T12:30:00Z"
+}
+
+### Get total amount
+GET {{host}}/api/payment/total
+Accept: application/json
+
+### Get configuration
+GET {{host}}/api/payment/configuration
+Accept: application/json
+
+### Update configuration
+PUT {{host}}/api/payment/configuration
+Content-Type: application/json
+
+{
+  "processingDelayMs": 500
+}
